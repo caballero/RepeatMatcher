@@ -63,6 +63,7 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 use Tk;
+use Tk::Hlist;
 
 # Default parameters
 my $help     = undef;         # Print help
@@ -89,7 +90,7 @@ my $our_version = 0.1;        # Script version number
 #                  -> 'status' : sequence analysis status
 my %data;
 my $box_width  = 100;
-my $box_height = 40;
+my $box_height = 30;
 my $call_id;
 my $delete;
 
@@ -126,57 +127,76 @@ my @ids = sort (keys %data);
 # Create the GUI
 my $mw = MainWindow -> new; # Main Window
 $mw -> title('RepeatMatcherGUI');
-
+my $data_frame      = $mw -> Frame();
 
 # Edit frame
-my $edit_frame      = $mw -> Frame() -> pack(-side => 'top', -fill => 'x');
-my $label_entry     = $edit_frame -> Entry();
+my $edit_frame      = $mw -> Frame();
+my $label_entry     = $edit_frame -> Entry(-width => $box_width, -background => 'white');
 my $update_button   = $edit_frame -> Button(-text => 'Update', -command => \&updateSeq);
 my $revcomp_button  = $edit_frame -> Button(-text => 'ReverseSeq', -command => \&reverseSeq);
-my $del_checkbox    = $edit_frame -> Checkbutton(-text => 'Delete', -variable => \$delete);
+my $del_checkbox    = $edit_frame -> Checkbutton(-text => 'Delete', -variable => \$delete, -background => 'white');
 
 # IDs list frame
-my $id_frame        = $mw -> Frame()-> pack(-side => 'left', -fill => 'y');
-
+my $id_hlist        = $mw -> Scrolled ('HList', 
+                                        -itemtype   => 'text',
+                                        -separator  => '/',
+                                        -selectmode => 'single',
+                                        -width      => 20, 
+                                        -height     => 2 * $box_height,,
+                                        -background => 'white',
+                                        -browsecmd  => sub { 
+                                                            $call_id = shift;
+                                                            &callID();
+                                                       }
+                                        );
 foreach my $id (@ids) {
-    $id_frame -> Radiobutton( 
-                          -text       => $id, 
-                          -variable   => \$call_id, 
-                          -value      => $id, 
-                          -command    => \&callID,
-                          -width      => 20, 
-                          -height     => 2 * $box_height
-                         );
+    $id_hlist -> add($id, -text => $id);
 }
 
+
 # Sequence frame
-my $seq_frame       = $mw -> Frame() -> pack(-side => 'top');
-my $seq_txt         = $seq_frame ->    Scrolled('Text', 
-                                                -scrollbars => "osoe", 
-                                                -width => $box_width, 
-                                                -height => $box_height);
+my $seq_txt         = $data_frame -> Scrolled('Text', 
+                                               -scrollbars => "osoe", 
+                                               -width      => $box_width, 
+                                               -height     => $box_height,
+                                               -background => 'white');
 
 # Align frame
-my $align_frame     = $mw -> Frame() -> pack(-side => 'top');
-my $align_txt       = $align_frame ->  Scrolled('Text', 
-                                                -scrollbars => "osoe", 
-                                                -width => $box_width, 
-                                                -height => $box_height);
+my $align_txt       = $data_frame -> Scrolled('Text', 
+                                               -scrollbars => "osoe", 
+                                               -width      => $box_width, 
+                                               -height     => $box_height,
+                                               -background => 'white');
 
 # Self frame
-my $self_frame      = $mw -> Frame() -> pack(-side => 'bottom');
-my $self_txt        = $self_frame ->   Scrolled('Text', 
-                                                -scrollbars => "osoe", 
-                                                -width => $box_width, 
-                                                -height => $box_height);
+my $self_txt        = $data_frame -> Scrolled('Text', 
+                                               -scrollbars => "osoe", 
+                                               -width      => $box_width, 
+                                               -height     => $box_height,
+                                               -background => 'white');
 
 
 # Blastx frame
-my $blastx_frame    = $mw -> Frame() -> pack(-side => 'bottom');
-my $blastx_txt      = $blastx_frame -> Scrolled('Text', 
-                                                -scrollbars => "osoe", 
-                                                -width => $box_width, 
-                                                -height => $box_height);
+my $blastx_txt      = $data_frame -> Scrolled('Text', 
+                                               -scrollbars => "osoe", 
+                                               -width      => $box_width, 
+                                               -height     => $box_height,
+                                               -background => 'white');
+
+# Geometry managment
+$label_entry    -> grid (-row => 1, -column => 1);
+$update_button  -> grid (-row => 1, -column => 2);
+$revcomp_button -> grid (-row => 1, -column => 3);
+$del_checkbox   -> grid (-row => 1, -column => 4);
+$edit_frame     -> grid (-row => 1, -column => 1, -columnspan => 4);
+
+$id_hlist       -> grid (-row => 2, -column => 1);
+
+$seq_txt        -> grid (-row => 1, -column => 2);
+$align_txt      -> grid (-row => 1, -column => 3);
+$self_txt       -> grid (-row => 2, -column => 2);
+$blastx_txt     -> grid (-row => 2, -column => 3);
+$data_frame     -> grid (-row => 2, -column => 2, -columnspan => 3, -rowspan => 2);
 
 MainLoop();
 
@@ -234,6 +254,7 @@ sub loadIn {
         if (m/>(.+?)#/) {
             $id = $1;
             s/>//;
+            chomp;
             $data{$id}{'label'} .= $_;
             $data{$id}{'status'} = 'u' unless (defined $data{$id}{'status'});
         }
@@ -282,8 +303,16 @@ sub loadBlastx {
             $data{$id}{'blastx'} .= 'No hits found';
         }
         else {
-            s/.+Searching\.+done\n\n//;
-            $data{$id}{'blastx'} .= $_;
+            my @hit = split (/\n/, $_);
+            pop @hit;
+            while (1) {
+                my $del = shift @hit;
+                last if ($del =~ /Searching/);
+            }
+            shift @hit;
+            shift @hit;
+            shift @hit;
+            $data{$id}{'blastx'} .= join ("\n", @hit);
         }
     }
     close B;
@@ -316,15 +345,23 @@ sub callID {
     $align_      = $data{$call_id}{'align'}  if (defined $data{$call_id}{'align'});
     $blastx_     = $data{$call_id}{'blastx'} if (defined $data{$call_id}{'blastx'});
     
-    $seq_txt    -> delete();
-    $self_txt   -> delete();
-    $align_txt  -> delete();
-    $blastx_txt -> delete();
-    
+    $seq_txt    -> selectAll;
+    $seq_txt    -> deleteSelected;
     $seq_txt    -> insert('end', ">$lab_\n$seq_");
-    $self_txt   -> insert('end', $self_);
+    
+    $align_txt  -> selectAll;
+    $align_txt  -> deleteSelected;
     $align_txt  -> insert('end', $align_);
+    
+    $self_txt   -> selectAll;
+    $self_txt   -> deleteSelected;
+    $self_txt   -> insert('end', $self_);
+    
+    $blastx_txt -> selectAll;
+    $blastx_txt -> deleteSelected;
     $blastx_txt -> insert('end', $blastx_);
+ 
+    $label_entry -> configure(-text => $lab_);
 }
 
 sub reverseSeq {
