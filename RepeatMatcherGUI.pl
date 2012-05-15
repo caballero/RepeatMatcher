@@ -89,10 +89,9 @@ my $our_version = 0.1;        # Script version number
 #                  -> 'blastx' : sequence alignments to reference peptides
 #                  -> 'status' : sequence analysis status
 my %data;
-my $box_width  = 100;
+my $box_width  = 90;
 my $box_height = 30;
-my $call_id;
-my $delete;
+my ($call_id, $delete, $reverse);
 
 # Calling options
 GetOptions(
@@ -111,7 +110,7 @@ printVersion() if (defined $version);
 pod2usage(-verbose => 2) if (defined $help);
 
 if (defined $reload) {
-    reloadProject($log);
+    reloadProject($reload);
 }
 else {
     startLog($log);
@@ -127,76 +126,105 @@ my @ids = sort (keys %data);
 # Create the GUI
 my $mw = MainWindow -> new; # Main Window
 $mw -> title('RepeatMatcherGUI');
-my $data_frame      = $mw -> Frame();
 
 # Edit frame
-my $edit_frame      = $mw -> Frame();
-my $label_entry     = $edit_frame -> Entry(-width => $box_width, -background => 'white');
-my $update_button   = $edit_frame -> Button(-text => 'Update', -command => \&updateSeq);
-my $revcomp_button  = $edit_frame -> Button(-text => 'ReverseSeq', -command => \&reverseSeq);
-my $del_checkbox    = $edit_frame -> Checkbutton(-text => 'Delete', -variable => \$delete, -background => 'white');
+my $edit_frame    = $mw         ->       Frame();
+my $label_entry   = $edit_frame ->       Entry(
+                                                -width      => int(1.5 * $box_width), 
+                                                -background => 'white'
+                                              );
+my $update_button = $edit_frame ->      Button(
+                                                -text       => 'Update', 
+                                                -command    => \&updateSeq
+                                              );
+my $rev_checkbox  = $edit_frame -> Checkbutton(
+                                                -text       => 'Reverse', 
+                                                -variable   => \$reverse,
+                                                -background => 'white',
+                                                -command    => sub {
+                                                               $data{$call_id}{'reverse'} = $reverse;
+                                                               }
+                                              );
+my $del_checkbox  = $edit_frame -> Checkbutton(
+                                                -text       => 'Delete',
+                                                -variable   => \$delete, 
+                                                -background => 'white',
+                                                -command    => sub {
+                                                               $data{$call_id}{'delete'} = $delete;
+                                                               }
+                                              );
 
 # IDs list frame
-my $id_hlist        = $mw -> Scrolled ('HList', 
-                                        -itemtype   => 'text',
-                                        -separator  => '/',
-                                        -selectmode => 'single',
-                                        -width      => 20, 
-                                        -height     => 2 * $box_height,,
-                                        -background => 'white',
-                                        -browsecmd  => sub { 
-                                                            $call_id = shift;
-                                                            &callID();
-                                                       }
-                                        );
+my $id_hlist      = $mw         ->    Scrolled(
+                                                'HList', 
+                                                -itemtype   => 'text',
+                                                -separator  => '/',
+                                                -selectmode => 'single',
+                                                -width      => 25, 
+                                                -height     => int(2 * $box_height),
+                                                -background => 'white',
+                                                -browsecmd  => sub { 
+                                                               $call_id = shift;
+                                                               &callID();
+                                                               }
+                                              );
 foreach my $id (@ids) {
-    $id_hlist -> add($id, -text => $id);
+    my $class = $data{$id}{'class'};
+    $id_hlist -> add($id, -text => "$id#$class");
 }
 
 
+# Put all objects in a frame
+my $data_frame    = $mw         ->       Frame();
 # Sequence frame
-my $seq_txt         = $data_frame -> Scrolled('Text', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $seq_txt       = $data_frame ->    Scrolled(
+                                                'Text', 
+                                                -scrollbars => "osoe", 
+                                                -width      => $box_width, 
+                                                -height     => $box_height,
+                                                -background => 'white'
+                                              );
 
 # Align frame
-my $align_txt       = $data_frame -> Scrolled('Text', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $align_txt     = $data_frame ->    Scrolled(
+                                                'Text', 
+                                                -scrollbars => "osoe", 
+                                                -width      => $box_width, 
+                                                -height     => $box_height,
+                                                -background => 'white'
+                                              );
 
 # Self frame
-my $self_txt        = $data_frame -> Scrolled('Text', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $self_txt      = $data_frame ->    Scrolled(
+                                                'Text', 
+                                                -scrollbars => "osoe", 
+                                                -width      => $box_width, 
+                                                -height     => $box_height,
+                                                -background => 'white'
+                                              );
 
 
 # Blastx frame
-my $blastx_txt      = $data_frame -> Scrolled('Text', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $blastx_txt    = $data_frame ->    Scrolled(
+                                                'Text', 
+                                                -scrollbars => "osoe", 
+                                                -width      => $box_width, 
+                                                -height     => $box_height,
+                                                -background => 'white'
+                                              );
 
-# Geometry managment
-$label_entry    -> grid (-row => 1, -column => 1);
-$update_button  -> grid (-row => 1, -column => 2);
-$revcomp_button -> grid (-row => 1, -column => 3);
-$del_checkbox   -> grid (-row => 1, -column => 4);
-$edit_frame     -> grid (-row => 1, -column => 1, -columnspan => 4);
-
-$id_hlist       -> grid (-row => 2, -column => 1);
-
-$seq_txt        -> grid (-row => 1, -column => 2);
-$align_txt      -> grid (-row => 1, -column => 3);
-$self_txt       -> grid (-row => 2, -column => 2);
-$blastx_txt     -> grid (-row => 2, -column => 3);
-$data_frame     -> grid (-row => 2, -column => 2, -columnspan => 3, -rowspan => 2);
+# Geometry
+$label_entry      -> grid (-row => 1, -column => 1);
+$rev_checkbox     -> grid (-row => 1, -column => 2);
+$del_checkbox     -> grid (-row => 1, -column => 3);
+$update_button    -> grid (-row => 1, -column => 4);
+$edit_frame       -> grid (-row => 1, -column => 1, -columnspan => 4);
+$id_hlist         -> grid (-row => 2, -column => 1);
+$seq_txt          -> grid (-row => 1, -column => 2);
+$align_txt        -> grid (-row => 1, -column => 3);
+$self_txt         -> grid (-row => 2, -column => 2);
+$blastx_txt       -> grid (-row => 2, -column => 3);
+$data_frame       -> grid (-row => 2, -column => 2, -columnspan => 3, -rowspan => 2);
 
 MainLoop();
 
@@ -212,91 +240,104 @@ sub printVersion {
 sub startLog {
     my $file = shift @_;
     my $ver  = 0;
-    $ver = 1 if (defined $verbose); 
+    $ver = 1 if (defined $verbose);
+    warn "creating LOG in $file\n" if (defined $verbose);
     open LOG, ">$file" or die "cannot open $file\n";
     print LOG <<_LOG_   
 # RepeatMatcherGUI log file
 seq_file: $in
 out_file: $out
+log_file: $log
 self_file: $self
 align_file: $align
 blastx_file: $blastx
 verbose_mode: $ver
 _LOG_
 ;
+close LOG;
 }
 
 sub reloadProject {
     my $file = shift @_;
-    open LOG, "+>$file" or die "cannot open $file\n";
+    warn "reading info from LOG in $file\n" if (defined $verbose);
+    open LOG, "$file" or die "cannot open $file\n";
     while (<LOG>) {
         chomp;
         next if (m/^#/);
         if    (m/^seq_file: (.+)/)     { $in      = $1; }
         elsif (m/^out_file: (.+)/)     { $out     = $1; }
+        elsif (m/^log_file: (.+)/)     { $log     = $1; }
         elsif (m/^self_file: (.+)/)    { $self    = $1; }
         elsif (m/^align_file: (.+)/)   { $align   = $1; }
         elsif (m/^blastx_file: (.+)/)  { $blastx  = $1; }
         elsif (m/^verbose_mode: (.+)/) { $verbose = $1; }
         else {
-            my ($id, $status) = split (/: /, $_);
-            $data{$id}{'status'} = $status;
+            my ($id, $del, $rev, $new) = split (/\t/, $_);
+            $data{$id}{'delete'}   = $del;
+            $data{$id}{'reverse'}  = $rev;
+            $data{$id}{'newlabel'} = $new;
         }
     }
     $verbose = undef if ($verbose == 0);
+    close LOG;
 }
 
 sub loadIn {
     warn "Loading sequences from $in\n" if (defined $verbose);
-    open F, "$in" or die "cannot open file $in\n";
+    open FASTA, "$in" or die "cannot open file $in\n";
     my $id;
-    while (<F>) {
-        if (m/>(.+?)#/) {
-            $id = $1;
+    my $class;
+    while (<FASTA>) {
+        if (m/>(.+?)#(.+?) /) {
+            $id    = $1;
+            $class = $2;
             s/>//;
             chomp;
-            $data{$id}{'label'} .= $_;
-            $data{$id}{'status'} = 'u' unless (defined $data{$id}{'status'});
+            $data{$id}{'label'}    = $_;
+            $data{$id}{'class'}    = $class;
+            $data{$id}{'delete'}   = 0  unless (defined $data{$id}{'delete'});
+            $data{$id}{'reverse'}  = 0  unless (defined $data{$id}{'reverse'});
+            $data{$id}{'newlabel'} = $_ unless (defined $data{$id}{'newlabel'});
         }
         else {
             $data{$id}{'seq'}   .= $_;
         }
     }
-    close F;
+    close FASTA;
 }
 
 sub loadAlign {
     warn "loading aligments in $align\n" if (defined $verbose);
-    open A, "$align" or die "cannot open file $align\n";
+    open ALIGN, "$align" or die "cannot open file $align\n";
     my $id = 'skip';
-    while (<A>) {
+    while (<ALIGN>) {
        if (m/^\s*\d+.+(rnd-\d+_family-\d+)#/) {
            $id = $1;
        }
        $data{$id}{'align'} .= $_ if ($id ne 'skip');
     }
-    close A;
+    close ALIGN;
 }
 
 sub loadSelf {
     warn "loading self-comparison in $self\n" if (defined $verbose);
     my $id;
-    open S, "$self" or die "cannot open file $self\n";
-    while (<S>) {
+    open SELF, "$self" or die "cannot open file $self\n";
+    while (<SELF>) {
        if (m/^\s*\d+.+(rnd-\d+_family-\d+)#/) {
            $id = $1;
            $data{$id}{'self'} .= $_;
        }
     }
-    close S;
+    close SELF;
 }
 
 sub loadBlastx {
     warn "loading blastx aligments in $blastx\n" if (defined $verbose);
     my $id;
-    open B, "$blastx" or die "cannot open file $blastx\n";
+    open BLAST, "$blastx" or die "cannot open file $blastx\n";
     local $/ = "\nBLASTX";
-    while (<B>) {
+    while (<BLAST>) {
         m/Query= (rnd-\d+_family-\d+)#/;
         $id = $1;
         if (m/No hits found/) {
@@ -315,13 +356,87 @@ sub loadBlastx {
             $data{$id}{'blastx'} .= join ("\n", @hit);
         }
     }
-    close B;
+    close BLAST;
+}
+
+sub callID {
+    my $lab_      = $call_id;
+    my $seq_      = 'No sequence';
+    my $self_     = 'No matches';
+    my $align_    = 'No matches';
+    my $blastx_   = 'No matches';
+    
+    $lab_         = $data{$call_id}{'label'}  if (defined $data{$call_id}{'label'}); 
+    $seq_         = $data{$call_id}{'seq'}    if (defined $data{$call_id}{'seq'});
+    $self_        = $data{$call_id}{'self'}   if (defined $data{$call_id}{'self'});
+    $align_       = $data{$call_id}{'align'}  if (defined $data{$call_id}{'align'});
+    $blastx_      = $data{$call_id}{'blastx'} if (defined $data{$call_id}{'blastx'});
+    
+    $seq_txt      -> selectAll;
+    $seq_txt      -> deleteSelected;
+    $seq_txt      -> insert('end', ">$lab_\n$seq_");
+    
+    $align_txt    -> selectAll;
+    $align_txt    -> deleteSelected;
+    $align_txt    -> insert('end', $align_);
+    
+    $self_txt     -> selectAll;
+    $self_txt     -> deleteSelected;
+    $self_txt     -> insert('end', $self_);
+    
+    $blastx_txt   -> selectAll;
+    $blastx_txt   -> deleteSelected;
+    $blastx_txt   -> insert('end', $blastx_);
+ 
+    $label_entry  -> configure(-text => $lab_);
+    
+     
+    if ($data{$call_id}{'reverse'} == 1) {
+        $rev_checkbox -> select;
+        $reverse = 1;
+    }
+    else {
+        $reverse = 0;
+    }
+    
+    if ($data{$call_id}{'delete'}  == 1) {
+        $del_checkbox -> select;
+        $delete = 1;
+    }
+    else {
+        $delete = 0;
+    }
+}
+
+
+sub updateSeq {
+    my $rec = '';
+    my $del = 0;
+    my $rev = 0;
+    my $lab = '';
+    $del    = 1 if ($data{$call_id}{'delete'}  == 1);
+    $rev    = 1 if ($data{$call_id}{'reverse'} == 1);
+    
+    my $new = $label_entry -> get;
+    if ($new ne $data{$call_id}{'label'}) {
+        $data{$call_id}{'newlabel'} = $new;
+        $lab = $new;
+    }
+    
+    open  LOG, ">>$log" or die "cannot open $log\n";
+    print LOG "$call_id\t$del\t$rev\t$lab\n";
+    warn "LOG> $call_id\t$del\t$rev\t$lab\n" if (defined $verbose);
+    close LOG;
+}
+
+sub reverseSeq {
+    $data{$call_id}{'seq'} = revcomp($data{$call_id}{'seq'});
 }
 
 sub revcomp {
     my $rc  =  '';
     my $sq  =  shift @_;
-       $sq  =~ s/\n+//;
+       $sq  =~ s/\n+//g;
        $sq  =  reverse $sq;
        $sq  =~ tr/ACGTacgt/TGCAtgca/;
     while ($sq) {
@@ -332,43 +447,3 @@ sub revcomp {
     return $rc;
 }
 
-sub callID {
-    my $lab_     = $call_id;
-    my $seq_     = 'No sequence';
-    my $self_    = 'No matches';
-    my $align_   = 'No matches';
-    my $blastx_  = 'No matches';
-    
-    $lab_        = $data{$call_id}{'label'}  if (defined $data{$call_id}{'label'}); 
-    $seq_        = $data{$call_id}{'seq'}    if (defined $data{$call_id}{'seq'});
-    $self_       = $data{$call_id}{'self'}   if (defined $data{$call_id}{'self'});
-    $align_      = $data{$call_id}{'align'}  if (defined $data{$call_id}{'align'});
-    $blastx_     = $data{$call_id}{'blastx'} if (defined $data{$call_id}{'blastx'});
-    
-    $seq_txt    -> selectAll;
-    $seq_txt    -> deleteSelected;
-    $seq_txt    -> insert('end', ">$lab_\n$seq_");
-    
-    $align_txt  -> selectAll;
-    $align_txt  -> deleteSelected;
-    $align_txt  -> insert('end', $align_);
-    
-    $self_txt   -> selectAll;
-    $self_txt   -> deleteSelected;
-    $self_txt   -> insert('end', $self_);
-    
-    $blastx_txt -> selectAll;
-    $blastx_txt -> deleteSelected;
-    $blastx_txt -> insert('end', $blastx_);
- 
-    $label_entry -> configure(-text => $lab_);
-}
-
-sub reverseSeq {
-    $data{$call_id}{'seq'} = revcomp($data{$call_id}{'seq'});
-    callID();
-}
-
-sub updateSeq {
-    
-}
