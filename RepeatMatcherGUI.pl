@@ -153,6 +153,10 @@ my $del_checkbox  = $edit_frame -> Checkbutton(
                                                                $data{$call_id}{'delete'} = $delete;
                                                                }
                                               );
+my $fasta_button  = $edit_frame ->      Button(
+                                                -text       => 'Export Fasta', 
+                                                -command    => \&writeFasta
+                                              );
 
 # IDs list frame
 my $id_hlist      = $mw         ->    Scrolled(
@@ -218,7 +222,8 @@ $label_entry      -> grid (-row => 1, -column => 1);
 $rev_checkbox     -> grid (-row => 1, -column => 2);
 $del_checkbox     -> grid (-row => 1, -column => 3);
 $update_button    -> grid (-row => 1, -column => 4);
-$edit_frame       -> grid (-row => 1, -column => 1, -columnspan => 4);
+$fasta_button     -> grid (-row => 1, -column => 6);
+$edit_frame       -> grid (-row => 1, -column => 1, -columnspan => 6);
 $id_hlist         -> grid (-row => 2, -column => 1);
 $seq_txt          -> grid (-row => 1, -column => 2);
 $align_txt        -> grid (-row => 1, -column => 3);
@@ -360,17 +365,17 @@ sub loadBlastx {
 }
 
 sub callID {
-    my $lab_      = $call_id;
+    my $lab_      = $data{$call_id}{'label'};
     my $seq_      = 'No sequence';
     my $self_     = 'No matches';
     my $align_    = 'No matches';
     my $blastx_   = 'No matches';
     
-    $lab_         = $data{$call_id}{'label'}  if (defined $data{$call_id}{'label'}); 
-    $seq_         = $data{$call_id}{'seq'}    if (defined $data{$call_id}{'seq'});
-    $self_        = $data{$call_id}{'self'}   if (defined $data{$call_id}{'self'});
-    $align_       = $data{$call_id}{'align'}  if (defined $data{$call_id}{'align'});
-    $blastx_      = $data{$call_id}{'blastx'} if (defined $data{$call_id}{'blastx'});
+    $lab_         = $data{$call_id}{'newlabel'} if (defined $data{$call_id}{'newlabel'}); 
+    $seq_         = $data{$call_id}{'seq'}      if (defined $data{$call_id}{'seq'});
+    $self_        = $data{$call_id}{'self'}     if (defined $data{$call_id}{'self'});
+    $align_       = $data{$call_id}{'align'}    if (defined $data{$call_id}{'align'});
+    $blastx_      = $data{$call_id}{'blastx'}   if (defined $data{$call_id}{'blastx'});
     
     $seq_txt      -> selectAll;
     $seq_txt      -> deleteSelected;
@@ -429,10 +434,6 @@ sub updateSeq {
     close LOG;
 }
 
-sub reverseSeq {
-    $data{$call_id}{'seq'} = revcomp($data{$call_id}{'seq'});
-}
-
 sub revcomp {
     my $rc  =  '';
     my $sq  =  shift @_;
@@ -447,3 +448,17 @@ sub revcomp {
     return $rc;
 }
 
+sub writeFasta {
+    open OUT, ">$out" or die "cannot write $out";
+    warn "writing sequences to $out\n" if (defined $verbose);
+    foreach my $id (@ids) {
+        next if ($data{$id}{'delete'} == 1);
+        my $lab = $data{$id}{'label'};
+        $lab = $data{$id}{'newlabel'} if (defined $data{$id}{'newlabel'});
+        my $seq = $data{$id}{'seq'};
+        $seq = revcomp($seq) if ($data{$id}{'reverse'} == 1);
+        print OUT ">$lab\n$seq";
+    }
+    close OUT;
+    warn "    done\n" if (defined $verbose);
+}
