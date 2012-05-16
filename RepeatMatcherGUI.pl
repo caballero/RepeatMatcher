@@ -91,6 +91,7 @@ my $our_version = 0.1;        # Script version number
 #                  -> reverse  : reverse flag
 #                  -> newlabel : new (edited) label for sequence
 my %data;
+my %classes;
 my $box_width  = 90;
 my $box_height = 30;
 my ($call_id, $delete, $reverse);
@@ -116,11 +117,11 @@ if (defined $reload) {
     reloadProject($reload);
 }
 else {
-    die "missing sequence file (-i)\n" unless (defined $in);
+    die "missing sequence file (-i)\n"        unless (defined $in);
     die "missing self-comparison file (-s)\n" unless (defined $self);
-    die "missing alignments file (-a)\n" unless (defined $align);
-    die "missing blastx file (-b)\n" unless (defined $blastx);
-    die "missing output file (-o)\n" unless (defined $out);
+    die "missing alignments file (-a)\n"      unless (defined $align);
+    die "missing blastx file (-b)\n"          unless (defined $blastx);
+    die "missing output file (-o)\n"          unless (defined $out);
     startLog($log);
 }
 
@@ -150,7 +151,7 @@ my $rev_checkbox  = $edit_frame -> Checkbutton(
                                                 -variable   => \$reverse,
                                                 -background => 'white',
                                                 -command    => sub {
-                                                               $data{$call_id}{'reverse'} = $reverse;
+                                                                   $data{$call_id}{'reverse'} = $reverse;
                                                                }
                                               );
 my $del_checkbox  = $edit_frame -> Checkbutton(
@@ -158,7 +159,7 @@ my $del_checkbox  = $edit_frame -> Checkbutton(
                                                 -variable   => \$delete, 
                                                 -background => 'white',
                                                 -command    => sub {
-                                                               $data{$call_id}{'delete'} = $delete;
+                                                                   $data{$call_id}{'delete'} = $delete;
                                                                }
                                               );
 my $fasta_button  = $edit_frame ->      Button(
@@ -170,19 +171,25 @@ my $fasta_button  = $edit_frame ->      Button(
 my $id_hlist      = $mw         ->    Scrolled(
                                                 'HList', 
                                                 -itemtype   => 'text',
-                                                -separator  => '/',
+                                                -separator  => '#',
                                                 -selectmode => 'single',
                                                 -width      => 25, 
                                                 -height     => int(2 * $box_height),
                                                 -background => 'white',
-                                                -browsecmd  => sub { 
-                                                               $call_id = shift;
-                                                               &callID();
+                                                -browsecmd  => sub {
+                                                                   my $call = shift;
+                                                                   my @call = split(/#/, $call);
+                                                                   $call_id = pop @call;
+                                                                   &callID();
                                                                }
                                               );
+$id_hlist -> add("#", -text => "#"); # root node
+foreach my $class (sort keys %classes) {
+    $id_hlist -> add("#$class", -text => $class);
+}
 foreach my $id (@ids) {
     my $class = $data{$id}{'class'};
-    $id_hlist -> add($id, -text => "$id#$class");
+    $id_hlist -> add("#$class#$id", -text => $id);
 }
 
 
@@ -288,7 +295,12 @@ sub reloadProject {
             my ($id, $del, $rev, $new) = split (/\t/, $_);
             $data{$id}{'delete'}   = $del;
             $data{$id}{'reverse'}  = $rev;
-            $data{$id}{'newlabel'} = $new;
+            if ($new =~ m/.+?#(.+?) /) {
+                my $class = $1;
+                $data{$id}{'class'}    = $class;
+                $data{$id}{'newlabel'} = $new;
+                $classes{$class}       = 1;
+            }
         }
     }
     $verbose = undef if ($verbose == 0);
@@ -307,10 +319,14 @@ sub loadIn {
             s/>//;
             chomp;
             $data{$id}{'label'}    = $_;
-            $data{$id}{'class'}    = $class;
-            $data{$id}{'delete'}   = 0  unless (defined $data{$id}{'delete'});
-            $data{$id}{'reverse'}  = 0  unless (defined $data{$id}{'reverse'});
-            $data{$id}{'newlabel'} = $_ unless (defined $data{$id}{'newlabel'});
+            unless (defined $data{$id}{$class}) {
+                $data{$id}{'class'}    = $class;
+                $classes{$class} = 1;
+            }
+                
+            $data{$id}{'delete'}   = 0      unless (defined $data{$id}{'delete'});
+            $data{$id}{'reverse'}  = 0      unless (defined $data{$id}{'reverse'});
+            $data{$id}{'newlabel'} = $_     unless (defined $data{$id}{'newlabel'});            
         }
         else {
             $data{$id}{'seq'}   .= $_;
@@ -373,6 +389,7 @@ sub loadBlastx {
 }
 
 sub callID {
+    return unless ($call_id =~ m/rnd-\d+_family-\d+/);
     my $lab_      = $data{$call_id}{'label'};
     my $seq_      = 'No sequence';
     my $self_     = 'No matches';
