@@ -110,11 +110,17 @@ GetOptions(
 ) or pod2usage(-verbose => 2);
 printVersion() if (defined $version);    
 pod2usage(-verbose => 2) if (defined $help);
+pod2usage(-verbose => 2) unless (defined $log or defined $reload);
 
 if (defined $reload) {
     reloadProject($reload);
 }
 else {
+    die "missing sequence file (-i)\n" unless (defined $in);
+    die "missing self-comparison file (-s)\n" unless (defined $self);
+    die "missing alignments file (-a)\n" unless (defined $align);
+    die "missing blastx file (-b)\n" unless (defined $blastx);
+    die "missing output file (-o)\n" unless (defined $out);
     startLog($log);
 }
 
