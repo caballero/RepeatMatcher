@@ -82,12 +82,14 @@ my $reload   = undef;
 my $our_version = 0.1;        # Script version number
 # %data => is the main struct
 #       $data{$id}
-#                  -> 'label'  : sequence fasta comment
-#                  -> 'seq'    : nucleotide sequence
-#                  -> 'self'   : sequence self-comparisons
-#                  -> 'align'  : sequence alignments to reference nucleotides
-#                  -> 'blastx' : sequence alignments to reference peptides
-#                  -> 'status' : sequence analysis status
+#                  -> label    : sequence fasta comment
+#                  -> seq      : nucleotide sequence
+#                  -> self     : sequence self-comparisons
+#                  -> align    : sequence alignments to reference nucleotides
+#                  -> blastx   : sequence alignments to reference peptides
+#                  -> delete   : delete flag
+#                  -> reverse  : reverse flag
+#                  -> newlabel : new (edited) label for sequence
 my %data;
 my $box_width  = 90;
 my $box_height = 30;
