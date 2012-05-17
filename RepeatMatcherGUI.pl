@@ -13,7 +13,8 @@ Create a graphic user interface to annotate RepeatModeler consensi.
     perl RepeatMatcherGUI [PARAMETERS]
 
     Parameter     Description
-    -o --out      Output file (Fasta)
+    -o --out      Output file with final sequences (Fasta)
+    -x --exclude  Output file with excluded sequences (Fasta)
     -i --input    Input file (Fasta)
     -s --self     Self-comparison of input (cross_match output)
     -a --align    Alignments of input to a reference (cross_match output)
@@ -64,6 +65,9 @@ use Getopt::Long;
 use Pod::Usage;
 use Tk;
 use Tk::Hlist;
+use Tk::ROText;
+use Tk::Label;
+use Tk::ItemStyle;
 
 # Default parameters
 my $help     = undef;         # Print help
@@ -76,7 +80,7 @@ my $align    = undef;
 my $blastx   = undef;
 my $log      = undef;
 my $reload   = undef;
-
+my $exclude  = undef;
 
 # Main variables
 my $our_version = 0.1;        # Script version number
@@ -90,11 +94,15 @@ my $our_version = 0.1;        # Script version number
 #                  -> delete   : delete flag
 #                  -> reverse  : reverse flag
 #                  -> newlabel : new (edited) label for sequence
+#                  -> question : question mark flag
+#                  -> list     : position in Hlist
+#                  -> status   : flag for finished sequences
 my %data;
 my %classes;
-my $box_width  = 90;
+my @classes;
+my $box_width  = 100;
 my $box_height = 30;
-my ($call_id, $delete, $reverse);
+my ($call_id, $delete, $reverse, $question);
 
 # Calling options
 GetOptions(
@@ -107,7 +115,8 @@ GetOptions(
     'a|align=s'        => \$align,
     'b|blastx=s'       => \$blastx,
     'l|log=s'          => \$log,
-    'r|reload:s'       => \$reload
+    'r|reload:s'       => \$reload,
+    'x|exclude:s'      => \$exclude
 ) or pod2usage(-verbose => 2);
 printVersion() if (defined $version);    
 pod2usage(-verbose => 2) if (defined $help);
@@ -122,6 +131,7 @@ else {
     die "missing alignments file (-a)\n"      unless (defined $align);
     die "missing blastx file (-b)\n"          unless (defined $blastx);
     die "missing output file (-o)\n"          unless (defined $out);
+    die "missing exclude file (-e)\n"         unless (defined $exclude);
     startLog($log);
 }
 
@@ -130,6 +140,7 @@ loadIn();
 loadSelf();
 loadAlign();
 loadBlastx();
+loadRepClasses();
 my @ids = sort (keys %data);
 
 # Create the GUI
@@ -138,8 +149,101 @@ $mw -> title('RepeatMatcherGUI');
 
 # Edit frame
 my $edit_frame    = $mw         ->       Frame();
-my $label_entry   = $edit_frame ->       Entry(
-                                                -width      => int(1.5 * $box_width), 
+my $id_label      = $edit_frame ->       Label( -width      => 30);
+my $class_entry   = $edit_frame ->       Entry( 
+                                                -width      => 20,
+                                                -background => 'white'
+                                              );
+my $rep_button    = $edit_frame ->  Menubutton( 
+                                                -text       => 'Repeat Family',
+                                                -relief     => 'raised'
+                                              );
+my $rep_menu      = $rep_button ->        Menu();
+my $dna_menu      = $rep_menu   ->     cascade( -label      => 'DNA');
+my $dnahat_menu   = $rep_menu   ->     cascade( -label      => 'DNA/hAT');
+my $dnatcm_menu   = $rep_menu   ->     cascade( -label      => 'DNA/TcMar');
+my $line_menu     = $rep_menu   ->     cascade( -label      => 'LINE');
+my $ltr_menu      = $rep_menu   ->     cascade( -label      => 'LTR');
+my $sine_menu     = $rep_menu   ->     cascade( -label      => 'SINE');
+my $sat_menu      = $rep_menu   ->     cascade( -label      => 'Satellite');
+my $other_menu    = $rep_menu   ->     cascade( -label      => 'Other');
+foreach my $rep (@classes) {
+    if    ($rep =~ m#^DNA/hAT#) {
+        $dnahat_menu -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    elsif ($rep =~ m#^DNA/TcMar#) {
+        $dnatcm_menu -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    elsif ($rep =~ m/^DNA/) {
+        $dna_menu    -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    elsif ($rep =~ m/^LINE/) {
+        $line_menu   -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    elsif ($rep =~ m/^LTR/) {
+        $ltr_menu    -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    elsif ($rep =~ m/^SINE/) {
+        $sine_menu   -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    elsif ($rep =~ m/^Satellite/) {
+        $sat_menu    -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+    else {
+        $other_menu  -> command( 
+                                 -label   => $rep, 
+                                 -command => sub { 
+                                                 $class_entry -> configure( -text => $rep)
+                                 }
+                               );
+    }
+}
+$rep_button -> configure( -menu => $rep_menu);
+
+my $qm_checkbox   = $edit_frame -> Checkbutton(
+                                                -text       => '?', 
+                                                -variable   => \$question,
+                                                -command    => sub {
+                                                                   $data{$call_id}{'question'} = $question;
+                                                               }
+                                              );
+my $info_entry    = $edit_frame ->       Entry(
+                                                -width      => 80, 
                                                 -background => 'white'
                                               );
 my $update_button = $edit_frame ->      Button(
@@ -149,15 +253,13 @@ my $update_button = $edit_frame ->      Button(
 my $rev_checkbox  = $edit_frame -> Checkbutton(
                                                 -text       => 'Reverse', 
                                                 -variable   => \$reverse,
-                                                -background => 'white',
                                                 -command    => sub {
                                                                    $data{$call_id}{'reverse'} = $reverse;
                                                                }
                                               );
 my $del_checkbox  = $edit_frame -> Checkbutton(
-                                                -text       => 'Delete',
+                                                -text       => 'Exclude',
                                                 -variable   => \$delete, 
-                                                -background => 'white',
                                                 -command    => sub {
                                                                    $data{$call_id}{'delete'} = $delete;
                                                                }
@@ -174,7 +276,7 @@ my $id_hlist      = $mw         ->    Scrolled(
                                                 -separator  => '#',
                                                 -selectmode => 'single',
                                                 -width      => 25, 
-                                                -height     => int(2 * $box_height),
+                                                -height     => int(2 * $box_height) - 2,
                                                 -background => 'white',
                                                 -browsecmd  => sub {
                                                                    my $call = shift;
@@ -183,13 +285,30 @@ my $id_hlist      = $mw         ->    Scrolled(
                                                                    &callID();
                                                                }
                                               );
-$id_hlist -> add("#", -text => "#"); # root node
+my $done_style   = $id_hlist    ->   ItemStyle(
+                                                'text', 
+                                                -foreground => 'red',
+                                                -background => 'white'
+                                              );
+my $undone_style = $id_hlist    ->   ItemStyle(
+                                                'text', 
+                                                -foreground => 'black', 
+                                                -background => 'white'
+                                              );
+
+$id_hlist -> add("#", -text => "#", -style => $undone_style); # root node
 foreach my $class (sort keys %classes) {
-    $id_hlist -> add("#$class", -text => $class);
+    $id_hlist -> add("#$class", -text => $class, -style => $undone_style);
 }
 foreach my $id (@ids) {
-    my $class = $data{$id}{'class'};
-    $id_hlist -> add("#$class#$id", -text => $id);
+    my $class  = $data{$id}{'class'};
+    my $status = $data{$id}{'status'};
+    if ($status == 1) {
+        $id_hlist -> add("#$class#$id", -text => $id, -style => $done_style);
+    }
+    else {
+        $id_hlist -> add("#$class#$id", -text => $id, -style => $undone_style);
+    }
 }
 
 
@@ -197,7 +316,7 @@ foreach my $id (@ids) {
 my $data_frame    = $mw         ->       Frame();
 # Sequence frame
 my $seq_txt       = $data_frame ->    Scrolled(
-                                                'Text', 
+                                                'ROText', 
                                                 -scrollbars => "osoe", 
                                                 -width      => $box_width, 
                                                 -height     => $box_height,
@@ -206,7 +325,7 @@ my $seq_txt       = $data_frame ->    Scrolled(
 
 # Align frame
 my $align_txt     = $data_frame ->    Scrolled(
-                                                'Text', 
+                                                'ROText', 
                                                 -scrollbars => "osoe", 
                                                 -width      => $box_width, 
                                                 -height     => $box_height,
@@ -215,7 +334,7 @@ my $align_txt     = $data_frame ->    Scrolled(
 
 # Self frame
 my $self_txt      = $data_frame ->    Scrolled(
-                                                'Text', 
+                                                'ROText', 
                                                 -scrollbars => "osoe", 
                                                 -width      => $box_width, 
                                                 -height     => $box_height,
@@ -225,7 +344,7 @@ my $self_txt      = $data_frame ->    Scrolled(
 
 # Blastx frame
 my $blastx_txt    = $data_frame ->    Scrolled(
-                                                'Text', 
+                                                'ROText', 
                                                 -scrollbars => "osoe", 
                                                 -width      => $box_width, 
                                                 -height     => $box_height,
@@ -233,12 +352,16 @@ my $blastx_txt    = $data_frame ->    Scrolled(
                                               );
 
 # Geometry
-$label_entry      -> grid (-row => 1, -column => 1);
-$rev_checkbox     -> grid (-row => 1, -column => 2);
-$del_checkbox     -> grid (-row => 1, -column => 3);
-$update_button    -> grid (-row => 1, -column => 4);
-$fasta_button     -> grid (-row => 1, -column => 6);
-$edit_frame       -> grid (-row => 1, -column => 1, -columnspan => 6);
+$id_label         -> grid (-row => 1, -column => 1);
+$class_entry      -> grid (-row => 1, -column => 2);
+$rep_button       -> grid (-row => 1, -column => 3);
+$qm_checkbox      -> grid (-row => 1, -column => 4);
+$info_entry       -> grid (-row => 1, -column => 5);
+$rev_checkbox     -> grid (-row => 1, -column => 6);
+$del_checkbox     -> grid (-row => 1, -column => 7);
+$update_button    -> grid (-row => 1, -column => 8);
+$fasta_button     -> grid (-row => 1, -column => 9);
+$edit_frame       -> grid (-row => 1, -column => 1, -columnspan => 9);
 $id_hlist         -> grid (-row => 2, -column => 1);
 $seq_txt          -> grid (-row => 1, -column => 2);
 $align_txt        -> grid (-row => 1, -column => 3);
@@ -271,6 +394,7 @@ log_file: $log
 self_file: $self
 align_file: $align
 blastx_file: $blastx
+exclude_file: $exclude
 verbose_mode: $ver
 _LOG_
 ;
@@ -290,6 +414,7 @@ sub reloadProject {
         elsif (m/^self_file: (.+)/)    { $self    = $1; }
         elsif (m/^align_file: (.+)/)   { $align   = $1; }
         elsif (m/^blastx_file: (.+)/)  { $blastx  = $1; }
+        elsif (m/^exclude_file: (.+)/) { $exclude = $1; }
         elsif (m/^verbose_mode: (.+)/) { $verbose = $1; }
         else {
             my ($id, $del, $rev, $new) = split (/\t/, $_);
@@ -299,7 +424,9 @@ sub reloadProject {
                 my $class = $1;
                 $data{$id}{'class'}    = $class;
                 $data{$id}{'newlabel'} = $new;
+                $data{$id}{'question'} = 1 if ($class =~ m/\?/);
                 $classes{$class}       = 1;
+                $data{$id}{'status'}   = 1;
             }
         }
     }
@@ -324,9 +451,11 @@ sub loadIn {
                 $classes{$class} = 1;
             }
                 
-            $data{$id}{'delete'}   = 0      unless (defined $data{$id}{'delete'});
-            $data{$id}{'reverse'}  = 0      unless (defined $data{$id}{'reverse'});
-            $data{$id}{'newlabel'} = $_     unless (defined $data{$id}{'newlabel'});            
+            $data{$id}{'delete'}   = 0  unless (defined $data{$id}{'delete'});
+            $data{$id}{'reverse'}  = 0  unless (defined $data{$id}{'reverse'});
+            $data{$id}{'newlabel'} = $_ unless (defined $data{$id}{'newlabel'});
+            $data{$id}{'question'} = 0  unless (defined $data{$id}{'question'});
+            $data{$id}{'status'}   = 0  unless (defined $data{$id}{'status'});            
         }
         else {
             $data{$id}{'seq'}   .= $_;
@@ -395,7 +524,9 @@ sub callID {
     my $self_     = 'No matches';
     my $align_    = 'No matches';
     my $blastx_   = 'No matches';
+    my $class_    = 'No class';
     
+    $class_       = $data{$call_id}{'class'}    if (defined $data{$call_id}{'class'});
     $lab_         = $data{$call_id}{'newlabel'} if (defined $data{$call_id}{'newlabel'}); 
     $seq_         = $data{$call_id}{'seq'}      if (defined $data{$call_id}{'seq'});
     $self_        = $data{$call_id}{'self'}     if (defined $data{$call_id}{'self'});
@@ -417,15 +548,18 @@ sub callID {
     $blastx_txt   -> selectAll;
     $blastx_txt   -> deleteSelected;
     $blastx_txt   -> insert('end', $blastx_);
- 
-    $label_entry  -> configure(-text => $lab_);
-    
+
+    $id_label     -> configure(-text => "Repeat: $call_id");
+    $class_entry  -> configure(-text => $class_);
+    $lab_ =~ s/^.+? //;
+    $info_entry   -> configure(-text => $lab_);
      
     if ($data{$call_id}{'reverse'} == 1) {
         $rev_checkbox -> select;
         $reverse = 1;
     }
     else {
+        $rev_checkbox -> deselect;
         $reverse = 0;
     }
     
@@ -434,10 +568,19 @@ sub callID {
         $delete = 1;
     }
     else {
+        $del_checkbox -> deselect;
         $delete = 0;
     }
+    
+    if ($data{$call_id}{'question'}  == 1) {
+        $qm_checkbox -> select;
+        $question = 1;
+    }
+    else {
+        $qm_checkbox -> deselect;
+        $question = 0;
+    }    
 }
-
 
 sub updateSeq {
     my $rec = '';
@@ -447,7 +590,14 @@ sub updateSeq {
     $del    = 1 if ($data{$call_id}{'delete'}  == 1);
     $rev    = 1 if ($data{$call_id}{'reverse'} == 1);
     
-    my $new = $label_entry -> get;
+    my $class = $data{$call_id}{'class'};
+    $id_hlist -> itemConfigure("#$class#$call_id", 0, -style => $done_style);
+
+    my $new_class = $class_entry -> get;
+    my $new_info  = $info_entry  -> get;
+    $new_class .= '?' if ($question == 1 and $new_class !~ m/\?/);
+    my $new = "$call_id#$new_class $new_info";
+    
     if ($new ne $data{$call_id}{'label'}) {
         $data{$call_id}{'newlabel'} = $new;
         $lab = $new;
@@ -474,16 +624,194 @@ sub revcomp {
 }
 
 sub writeFasta {
-    open OUT, ">$out" or die "cannot write $out";
-    warn "writing sequences to $out\n" if (defined $verbose);
+    open OUT, ">$out" or die "cannot write $out\n";
+    open BAD, ">$exclude" or die "cannot write $exclude\n";
+    warn "writing final sequences to $out\n" if (defined $verbose);
+    warn "writing exclude sequences to $exclude\n" if (defined $verbose);
     foreach my $id (@ids) {
-        next if ($data{$id}{'delete'} == 1);
         my $lab = $data{$id}{'label'};
         $lab = $data{$id}{'newlabel'} if (defined $data{$id}{'newlabel'});
         my $seq = $data{$id}{'seq'};
         $seq = revcomp($seq) if ($data{$id}{'reverse'} == 1);
-        print OUT ">$lab\n$seq";
+        if ($data{$id}{'delete'} == 1) {
+            print BAD ">$lab\n$seq";
+        }
+        else {
+            print OUT ">$lab\n$seq";
+        }
     }
     close OUT;
-    warn "    done\n" if (defined $verbose);
+    warn "Done.\n" if (defined $verbose);
+}
+
+sub loadRepClasses {
+    warn "loading repeat families\n" if (defined $verbose);
+    @classes = qw#
+ARTEFACT
+DNA
+DNA/Academ
+DNA/CMC-Chapaev
+DNA/CMC-Chapaev-3
+DNA/CMC-EnSpm
+DNA/CMC-Mirage
+DNA/CMC-Transib
+DNA/Chapaev
+DNA/Crypton
+DNA/Ginger
+DNA/Harbinger
+DNA/Kolobok
+DNA/Kolobok-Hydra
+DNA/Kolobok-T2
+DNA/MULE-F
+DNA/MULE-MuDR
+DNA/MULE-NOF
+DNA/Maverick
+DNA/Merlin
+DNA/Novosib
+DNA/P
+DNA/P-Fungi
+DNA/PIF-Harbinger
+DNA/PIF-ISL2EU
+DNA/PiggyBac
+DNA/Sola
+DNA/TcMar
+DNA/TcMar-Ant1
+DNA/TcMar-Fot1
+DNA/TcMar-Gizmo
+DNA/TcMar-ISRm11
+DNA/TcMar-Mariner
+DNA/TcMar-Mogwai
+DNA/TcMar-Pogo
+DNA/TcMar-Sagan
+DNA/TcMar-Stowaway
+DNA/TcMar-Tc1
+DNA/TcMar-Tc2
+DNA/TcMar-Tc4
+DNA/TcMar-Tigger
+DNA/TcMar-m44
+DNA/Transib
+DNA/Zator
+DNA/Zisupton
+DNA/hAT
+DNA/hAT-Ac
+DNA/hAT-Blackjack
+DNA/hAT-Charlie
+DNA/hAT-Pegasus
+DNA/hAT-Restless
+DNA/hAT-Tag1
+DNA/hAT-Tip100
+DNA/hAT-Tol2
+DNA/hAT-hAT1
+DNA/hAT-hAT5
+DNA/hAT-hATm
+DNA/hAT-hATw
+DNA/hAT-hATx
+DNA/hAT-hobo
+LINE
+LINE/Ambal
+LINE/CR1
+LINE/CR1-Zenon
+LINE/CRE
+LINE/DRE
+LINE/Dong-R4
+LINE/Genie
+LINE/I
+LINE/Jockey
+LINE/L1
+LINE/L1-Tx1
+LINE/L2
+LINE/L2-Hydra
+LINE/LOA
+LINE/Odin
+LINE/Penelope
+LINE/Proto1
+LINE/Proto2
+LINE/R1
+LINE/R2
+LINE/R2-Hero
+LINE/RTE
+LINE/RTE-BovB
+LINE/RTE-RTE
+LINE/RTE-X
+LINE/Rex-Babar
+LINE/Tad1
+LINE/Zorro
+LINE/telomeric
+LTR
+LTR/Caulimovirus
+LTR/Copia
+LTR/Copia(Xen1)
+LTR/DIRS
+LTR/ERV
+LTR/ERV-Foamy
+LTR/ERV-Lenti
+LTR/ERV1
+LTR/ERVK
+LTR/ERVL
+LTR/ERVL-MaLR
+LTR/Gypsy
+LTR/Gypsy-Troyka
+LTR/Ngaro
+LTR/Pao
+LTR/TATE
+LTR/Viper
+Low_complexity
+Other
+Other/Composite
+Other/DNA_virus
+Other/centromeric
+Other/subtelomeric
+RC/Helitron
+RNA
+Retroposon
+SINE
+SINE/5S
+SINE/7SL
+SINE/Alu
+SINE/B2
+SINE/B4
+SINE/BovA
+SINE/C
+SINE/CORE
+SINE/Deu
+SINE/Dong-R4
+SINE/I
+SINE/ID
+SINE/L1
+SINE/L2
+SINE/MIR
+SINE/Mermaid
+SINE/R1
+SINE/R2
+SINE/RTE
+SINE/RTE-BovB
+SINE/Salmon
+SINE/Sauria
+SINE/V
+SINE/tRNA
+SINE/tRNA-7SL
+SINE/tRNA-CR1
+SINE/tRNA-Glu
+SINE/tRNA-L2
+SINE/tRNA-Lys
+SINE/tRNA-R2
+SINE/tRNA-RTE
+Satellite
+Satellite/W-chromosome
+Satellite/Y-chromosome
+Satellite/acromeric
+Satellite/centromeric
+Satellite/macro
+Satellite/subtelomeric
+Satellite/telomeric
+Segmental
+Simple_repeat
+Unknown
+Unknown/Y-chromosome
+Unknown/centromeric
+rRNA
+scRNA
+snRNA
+tRNA
+#;
 }
