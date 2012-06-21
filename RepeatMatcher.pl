@@ -17,8 +17,8 @@ RepeatMatcher.pl [PARAMETERS]
      Parameters       Description                 Type        Default
      -s --sequences   RepeatModeler sequences     Fasta
      -k --known       Known repeat annotation     Fasta
-     -o --out         Write output here           Fasta
      -c --config      Configuration file          File
+     -o --out         Base name for files         
      -e --edit        Edit configuration
      -d --demo        Don't run the commands, show the commands instead
      
@@ -37,7 +37,7 @@ RepeatMatcher.pl [PARAMETERS]
      
 =head1 EXAMPLES
 
-RepeatMatcher.pl -s RepeatModeler.fa -k RepBase.fa -o NewAnnotation.fa
+     RepeatMatcher.pl -s RepeatModeler.fa -k RepBase.fa -o NewAnnotation
 
 =head1 AUTHOR
 
@@ -73,8 +73,8 @@ use Pod::Usage;
 my $help          = undef;
 my $verbose       = undef;
 my $version       = undef;
-my $out           = undef;
 my $orig_seq      = undef;
+my $out           = undef;
 my $known_seq     = undef;
 my $no_low        = undef;
 my $no_self_comp  = undef;
@@ -104,11 +104,11 @@ my ($mask_seq, $self_comp, $known_comp, $rep_blast, $nr_blast, $fold);
 GetOptions(
     'h|help'           => \$help,
     'v|verbose'        => \$verbose,
-    's|sequences:s'    => \$orig_seq,
+    's|sequences=s'    => \$orig_seq,
     'k|known:s'        => \$known_seq,
     'c|config:s'       => \$conf_file,
-    'e|edit'           => \$edit_conf,
     'o|out:s'          => \$out,
+    'e|edit'           => \$edit_conf,
     'no-low'           => \$no_low,
     'no-self-comp'     => \$no_self_comp,
     'no-known-comp'    => \$no_known_comp,
@@ -119,7 +119,12 @@ GetOptions(
 ) or pod2usage(-verbose => 2);
 printVersion() if (defined $version);    
 pod2usage(-verbose => 2) if (defined $help);
-pod2usage(-verbose => 2) unless (defined $out and defined $orig_seq);
+pod2usage(-verbose => 2) unless (defined $orig_seq);
+
+unless (defined $out) {
+    $out = $orig_seq;
+    $out =~ s/\.\w+?$//;
+}
 
 # Load Configuration
 readConfig($conf_file);
@@ -130,37 +135,37 @@ if (defined $no_low) {
     $mask_seq = $orig_seq;
 }
 else { # mask low complexity sequences, remove bad sequences
-    $mask_seq = "$orig_seq.mask";
+    $mask_seq = "$out.mask";
     maskLow($orig_seq, $mask_seq);
 }
 
 # STEP 2. Self-check-up
 unless (defined $no_self_comp) {
-    $self_comp = "$mask_seq.self";
+    $self_comp = "$out.self";
     selfComp($mask_seq, $self_comp);
 }   
 
 # STEP 3. Sequence alignments
 unless (defined $no_known_comp) {
-    $known_comp = "$mask_seq.known";
+    $known_comp = "$out.known";
     annComp($mask_seq, $known_seq, $known_comp);
 }
 
 # STEP 4. Blast to known repeats
 unless (defined $no_rep_blast) {
-    $rep_blast = "$mask_seq.repblast";
+    $rep_blast = "$out.repblast";
     blastxRep($mask_seq, $rep_blast);
 }
 
 # STEP 5. Blast to NR
 unless (defined $no_nr_blast) {
-    $nr_blast = "$mask_seq.nrblast";
+    $nr_blast = "$out.nrblast";
     blastxNR($mask_seq, $nr_blast);
 }
 
 # STEP 6. Fold sequences
 unless (defined $no_fold) {
-    $fold = "$mask_seq.fold";
+    $fold = "$out.fold";
     foldSeq($mask_seq, $fold);
 }
 
