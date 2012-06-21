@@ -75,6 +75,7 @@ my $verbose       = undef;
 my $version       = undef;
 my $out           = undef;
 my $orig_seq      = undef;
+my $known_seq     = undef;
 my $no_low        = undef;
 my $no_self_comp  = undef;
 my $no_known_comp = undef;
@@ -105,7 +106,6 @@ GetOptions(
     'v|verbose'        => \$verbose,
     's|sequences:s'    => \$orig_seq,
     'k|known:s'        => \$known_seq,
-    'a|align:s'        => \$align_file,
     'c|config:s'       => \$conf_file,
     'e|edit'           => \$edit_conf,
     'o|out:s'          => \$out,
@@ -159,7 +159,7 @@ unless (defined $no_nr_blast) {
 }
 
 # STEP 6. Fold sequences
-unless (defined $nofold) {
+unless (defined $no_fold) {
     $fold = "$mask_seq.fold";
     foldSeq($mask_seq, $fold);
 }
