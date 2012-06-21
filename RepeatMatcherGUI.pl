@@ -12,19 +12,21 @@ Create a graphic user interface to annotate RepeatModeler consensi.
 
     perl RepeatMatcherGUI [PARAMETERS]
 
-    Parameter     Description
-    -o --out      Output file with final sequences (Fasta)
-    -x --exclude  Output file with excluded sequences (Fasta)
-    -i --input    Input file (Fasta)
-    -s --self     Self-comparison of input (cross_match output)
-    -a --align    Alignments of input to a reference (cross_match output)
-    -b --blastx   Blast output of the input to reference petides (blast output)
-    -l --log      Write log file here (used to keep track of progress)
-    -r --reload   Reload a previous project
+    Parameter      Description
+    -o --out       Output file with final sequences (Fasta)
+    -x --exclude   Output file with excluded sequences (Fasta)
+    -i --input     Input file (Fasta)
+    -s --self      Self-comparison of input (cross_match output)
+    -a --align     Alignments of input to a reference (cross_match output)
+    -b --repblast  Blast output of repeat peptides comparison (blast output)
+    -n --nrblast   Blast output of NR peptides comparison (blast output)
+    -f --fold      Sequence fold output (RNAfold output)
+    -l --log       Write log file here (used to keep track of progress)
+    -r --reload    Reload a previous project
 
-    -v --verbose  Verbose mode
-    -h --help     Print this screen
-    --version     Print version
+    -v --verbose   Verbose mode
+    -h --help      Print this screen
+    --version      Print version
     
 =head1 EXAMPLES
 
@@ -77,7 +79,9 @@ my $out      = undef;
 my $in       = undef;
 my $self     = undef;
 my $align    = undef;
-my $blastx   = undef;
+my $repblast = undef;
+my $nrblast  = undef;
+my $fold     = undef;
 my $log      = undef;
 my $reload   = undef;
 my $exclude  = undef;
@@ -90,7 +94,9 @@ my $our_version = 0.1;        # Script version number
 #            |-> seq      : nucleotide sequence
 #            |-> self     : sequence self-comparisons
 #            |-> align    : sequence alignments to reference nucleotides
-#            |-> blastx   : sequence alignments to reference peptides
+#            |-> repblast : sequence alignments to reference peptides
+#            |-> nrblast  : sequence alignments to NR database
+#            |-> fold     : sequence folds
 #            |-> delete   : delete flag
 #            |-> reverse  : reverse flag
 #            |-> newlabel : new (edited) label for sequence
@@ -100,8 +106,8 @@ my $our_version = 0.1;        # Script version number
 my %data;
 my %classes;
 my @classes;
-my $box_width  = 100;
-my $box_height = 30;
+my $box_width  = 80;
+my $box_height = 25;
 my ($call_id, $delete, $reverse, $question);
 
 # Calling options
@@ -113,7 +119,9 @@ GetOptions(
     'i|in=s'           => \$in,
     's|self=s'         => \$self,
     'a|align=s'        => \$align,
-    'b|blastx=s'       => \$blastx,
+    'b|repblast=s'     => \$repblast,
+    'n|nrblast=s'      => \$nrblast,
+    'f|fold=s'         => \$fold,
     'l|log=s'          => \$log,
     'r|reload:s'       => \$reload,
     'x|exclude:s'      => \$exclude
@@ -129,7 +137,9 @@ else {
     die "missing sequence file (-i)\n"        unless (defined $in);
     die "missing self-comparison file (-s)\n" unless (defined $self);
     die "missing alignments file (-a)\n"      unless (defined $align);
-    die "missing blastx file (-b)\n"          unless (defined $blastx);
+    die "missing repeats blast file (-b)\n"   unless (defined $repblast);
+    die "missing NR blast file (-n)\n"        unless (defined $nrblast);
+    die "missing dna fold file (-f)\n"        unless (defined $fold);
     die "missing output file (-o)\n"          unless (defined $out);
     die "missing exclude file (-e)\n"         unless (defined $exclude);
     startLog($log);
@@ -139,8 +149,11 @@ else {
 loadIn();
 loadSelf();
 loadAlign();
-loadBlastx();
+loadRepBlast();
+loadNRBlast();
+loadFold();
 loadRepClasses();
+
 my @ids = sort (keys %data);
 
 # Create the GUI
@@ -305,8 +318,22 @@ my $self_txt      = $data_frame ->    Scrolled('ROText',
                                                -background => 'white');
 
 
-# Blastx frame
-my $blastx_txt    = $data_frame ->    Scrolled('ROText', 
+# Repeats Blast frame
+my $repblast_txt  = $data_frame ->    Scrolled('ROText', 
+                                               -scrollbars => "osoe", 
+                                               -width      => $box_width, 
+                                               -height     => $box_height,
+                                               -background => 'white');
+
+# NR Blast frame
+my $nrblast_txt   = $data_frame ->    Scrolled('ROText', 
+                                               -scrollbars => "osoe", 
+                                               -width      => $box_width, 
+                                               -height     => $box_height,
+                                               -background => 'white');
+
+# Fold frame
+my $fold_txt      = $data_frame ->    Scrolled('ROText', 
                                                -scrollbars => "osoe", 
                                                -width      => $box_width, 
                                                -height     => $box_height,
@@ -327,9 +354,11 @@ $id_hlist      -> grid (-row => 2, -column => 1);
 $seq_txt       -> grid (-row => 1, -column => 2);
 $align_txt     -> grid (-row => 1, -column => 3);
 $self_txt      -> grid (-row => 2, -column => 2);
-$blastx_txt    -> grid (-row => 2, -column => 3);
+$repblast_txt  -> grid (-row => 2, -column => 3);
+$nrblast_txt   -> grid (-row => 3, -column => 2);
+$fold_txt      -> grid (-row => 3, -column => 3);
 $data_frame    -> grid (-row => 2, -column => 2, 
-                        -columnspan => 3, -rowspan => 2);
+                        -columnspan => 3, -rowspan => 3);
 
 MainLoop();
 
@@ -355,7 +384,9 @@ out_file: $out
 log_file: $log
 self_file: $self
 align_file: $align
-blastx_file: $blastx
+fold_file: $fold
+nrblast_file: $nrblast
+repblast_file: $repblast
 exclude_file: $exclude
 verbose_mode: $ver
 _LOG_
@@ -370,14 +401,16 @@ sub reloadProject {
     while (<LOG>) {
         chomp;
         next if (m/^#/);
-        if    (m/^seq_file: (.+)/)     { $in      = $1; }
-        elsif (m/^out_file: (.+)/)     { $out     = $1; }
-        elsif (m/^log_file: (.+)/)     { $log     = $1; }
-        elsif (m/^self_file: (.+)/)    { $self    = $1; }
-        elsif (m/^align_file: (.+)/)   { $align   = $1; }
-        elsif (m/^blastx_file: (.+)/)  { $blastx  = $1; }
-        elsif (m/^exclude_file: (.+)/) { $exclude = $1; }
-        elsif (m/^verbose_mode: (.+)/) { $verbose = $1; }
+        if    (m/^seq_file: (.+)/)      { $in       = $1; }
+        elsif (m/^out_file: (.+)/)      { $out      = $1; }
+        elsif (m/^log_file: (.+)/)      { $log      = $1; }
+        elsif (m/^self_file: (.+)/)     { $self     = $1; }
+        elsif (m/^align_file: (.+)/)    { $align    = $1; }
+        elsif (m/^nrblast_file: (.+)/)  { $nrblast  = $1; }
+        elsif (m/^fold_file: (.+)/)     { $fold     = $1; }
+        elsif (m/^repblast_file: (.+)/) { $repblast = $1; }
+        elsif (m/^exclude_file: (.+)/)  { $exclude  = $1; }
+        elsif (m/^verbose_mode: (.+)/)  { $verbose  = $1; }
         else {
             my ($id, $del, $rev, $new) = split (/\t/, $_);
             $data{$id}{'delete'}   = $del;
@@ -452,16 +485,16 @@ sub loadSelf {
     close SELF;
 }
 
-sub loadBlastx {
-    warn "loading blastx aligments in $blastx\n" if (defined $verbose);
+sub loadRepBlast {
+    warn "loading repeats blast aligments in $repblast\n" if (defined $verbose);
     my $id;
-    open BLAST, "$blastx" or die "cannot open file $blastx\n";
+    open BLAST, "$repblast" or die "cannot open file $repblast\n";
     local $/ = "\nBLASTX";
     while (<BLAST>) {
         m/Query= (rnd-\d+_family-\d+)#/;
         $id = $1;
         if (m/No hits found/) {
-            $data{$id}{'blastx'} .= 'No hits found';
+            $data{$id}{'repblast'} .= 'No hits found';
         }
         else {
             my @hit = split (/\n/, $_);
@@ -473,48 +506,97 @@ sub loadBlastx {
             shift @hit;
             shift @hit;
             shift @hit;
-            $data{$id}{'blastx'} .= join ("\n", @hit);
+            $data{$id}{'repblast'} .= join ("\n", @hit);
         }
     }
     close BLAST;
 }
 
+sub loadNRBlast {
+    warn "loading NR blast aligments in $nrblast\n" if (defined $verbose);
+    my $id;
+    open BLAST, "$nrblast" or die "cannot open file $nrblast\n";
+    local $/ = "\nBLASTX";
+    while (<BLAST>) {
+        m/Query= (rnd-\d+_family-\d+)#/;
+        $id = $1;
+        if (m/No hits found/) {
+            $data{$id}{'nrblast'} .= 'No hits found';
+        }
+        else {
+            my @hit = split (/\n/, $_);
+            pop @hit;
+            while (1) {
+                my $del = shift @hit;
+                last if ($del =~ /Searching/);
+            }
+            shift @hit;
+            shift @hit;
+            shift @hit;
+            $data{$id}{'nrblast'} .= join ("\n", @hit);
+        }
+    }
+    close BLAST;
+}
+
+sub loadFold {
+    warn "loading sequence fold in $fold\n" if (defined $verbose);
+    my $id;
+    open FOLD, "$fold" or die "cannot open file $fold\n";
+
+    #### PUT CODE HERE ####
+    
+    close FOLD;
+}
+
 sub callID {
     return unless ($call_id =~ m/rnd-\d+_family-\d+/);
-    my $lab_     = $data{$call_id}{'label'};
-    my $seq_     = 'No sequence';
-    my $self_    = 'No matches';
-    my $align_   = 'No matches';
-    my $blastx_  = 'No matches';
-    my $class_   = 'No class';
+    my $lab_      = $data{$call_id}{'label'};
+    my $seq_      = 'No sequence';
+    my $self_     = 'No matches';
+    my $align_    = 'No matches';
+    my $repblast_ = 'No matches';
+    my $nrblast_  = 'No matches';
+    my $fold_     = 'No fold';
+    my $class_    = 'No class';
     
-    $class_      = $data{$call_id}{'class'}    if (defined $data{$call_id}{'class'});
-    $lab_        = $data{$call_id}{'newlabel'} if (defined $data{$call_id}{'newlabel'}); 
-    $seq_        = $data{$call_id}{'seq'}      if (defined $data{$call_id}{'seq'});
-    $self_       = $data{$call_id}{'self'}     if (defined $data{$call_id}{'self'});
-    $align_      = $data{$call_id}{'align'}    if (defined $data{$call_id}{'align'});
-    $blastx_     = $data{$call_id}{'blastx'}   if (defined $data{$call_id}{'blastx'});
+    $class_       = $data{$call_id}{'class'}    if (defined $data{$call_id}{'class'});
+    $lab_         = $data{$call_id}{'newlabel'} if (defined $data{$call_id}{'newlabel'}); 
+    $seq_         = $data{$call_id}{'seq'}      if (defined $data{$call_id}{'seq'});
+    $self_        = $data{$call_id}{'self'}     if (defined $data{$call_id}{'self'});
+    $align_       = $data{$call_id}{'align'}    if (defined $data{$call_id}{'align'});
+    $repblast_    = $data{$call_id}{'repblast'} if (defined $data{$call_id}{'repblast'});
+    $nrblast_     = $data{$call_id}{'nrblast'}  if (defined $data{$call_id}{'nrblast'});
+    $fold_        = $data{$call_id}{'fold'}     if (defined $data{$call_id}{'fold'});
     
-    $seq_txt     -> selectAll;
-    $seq_txt     -> deleteSelected;
-    $seq_txt     -> insert('end', ">$lab_\n$seq_");
+    $seq_txt      -> selectAll;
+    $seq_txt      -> deleteSelected;
+    $seq_txt      -> insert('end', ">$lab_\n$seq_");
     
-    $align_txt   -> selectAll;
-    $align_txt   -> deleteSelected;
-    $align_txt   -> insert('end', $align_);
+    $align_txt    -> selectAll;
+    $align_txt    -> deleteSelected;
+    $align_txt    -> insert('end', $align_);
     
-    $self_txt    -> selectAll;
-    $self_txt    -> deleteSelected;
-    $self_txt    -> insert('end', $self_);
+    $self_txt     -> selectAll;
+    $self_txt     -> deleteSelected;
+    $self_txt     -> insert('end', $self_);
     
-    $blastx_txt  -> selectAll;
-    $blastx_txt  -> deleteSelected;
-    $blastx_txt  -> insert('end', $blastx_);
+    $repblast_txt -> selectAll;
+    $repblast_txt -> deleteSelected;
+    $repblast_txt -> insert('end', $repblast_);
 
-    $id_label    -> configure(-text => "Repeat: $call_id");
-    $class_entry -> configure(-text => $class_);
-    $lab_ =~ s/^.+? //;
-    $info_entry  -> configure(-text => $lab_);
+    $nrblast_txt  -> selectAll;
+    $nrblast_txt  -> deleteSelected;
+    $nrblast_txt  -> insert('end', $nrblast_);
+
+    $fold_txt     -> selectAll;
+    $fold_txt     -> deleteSelected;
+    $fold_txt     -> insert('end', $fold_);
+
+    $id_label     -> configure(-text => "Repeat: $call_id");
+    $class_entry  -> configure(-text => $class_);
+    $lab_         =~ s/^.+? //;
+    $info_entry   -> configure(-text => $lab_);
      
     if ($data{$call_id}{'reverse'} == 1) {
         $rev_checkbox -> select;
