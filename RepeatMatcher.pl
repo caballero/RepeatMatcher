@@ -20,16 +20,20 @@ RepeatMatcher.pl [PARAMETERS]
      -o --out         Write output here           Fasta
      -c --config      Configuration file          File
      -e --edit        Edit configuration
-     -g --gui         Call the GUI after finish
-     -d --demo        Don't run the analysis, show the commands instead
+     -d --demo        Don't run the commands, show the commands instead
      
-     --nolow          Don't mask low complexity repeats
-     --noselfcomp     Don't self compare repeats
-     --noblastx       Don't blast to repeat peptides
-     --noknowncomp    Don't compare with the annotation
+     Skipping some steps:
+     --no-low         Don't mask low complexity repeats
+     --no-self-comp   Don't self compare repeats
+     --no-known-comp  Don't compare with the annotation
+     --no-rep-blast   Don't blast to repeat peptides
+     --no-nr-blast    Don't run blast to NR database
+     --no-fold        Don't fold the sequence
      
+     Other parameters:
      -h --help        Print this screen
      -v --verbose     Verbose mode
+     --version        Print version information and exit
      
 =head1 EXAMPLES
 
@@ -66,27 +70,26 @@ use Getopt::Long;
 use Pod::Usage;
 
 # Default parameters
-my $help        = undef;
-my $verbose     = undef;
-my $version     = undef;
-my $out         = undef;
-my $orig_seq    = undef;
-my $ann_seq     = undef;
-my $blastx_file = undef;
-my $self_file   = undef;
-my $nolow       = undef;
-my $noselfcomp  = undef;
-my $noknowncomp = undef;
-my $edit_conf   = undef;
-my $align_file  = undef;
-my $conf_file   = 'RepeatMatcher.conf';
-my $call_gui    = undef;
-my $demo        = undef;
+my $help          = undef;
+my $verbose       = undef;
+my $version       = undef;
+my $out           = undef;
+my $orig_seq      = undef;
+my $no_low        = undef;
+my $no_self_comp  = undef;
+my $no_known_comp = undef;
+my $no_rep_blast  = undef;
+my $no_nr_blast   = undef;
+my $no_fold       = undef;
+my $edit_conf     = undef;
+my $conf_file     = 'RepeatMatcher.conf';
+my $demo          = undef;
 
 # Exec programs location/call, change it if they're not in your PATH
 my $repeatmasker = 'RepeatMasker';
 my $crossmatch   = 'cross_match';
 my $blast        = 'blastall';
+my $dnafold      = 'RNAfold';
 my $repmat_gui   = 'RepeatMatcherGUI.pl';
 
 # Main variables
@@ -94,22 +97,24 @@ my $our_version = 0.1;
 my %conf;
 my %seq;
 my %aln;
-my $mask_seq;
+my ($mask_seq, $self_comp, $known_comp, $rep_blast, $nr_blast, $fold);
 
 # Calling options
 GetOptions(
     'h|help'           => \$help,
     'v|verbose'        => \$verbose,
     's|sequences:s'    => \$orig_seq,
-    'k|known:s'        => \$ann_seq,
+    'k|known:s'        => \$known_seq,
     'a|align:s'        => \$align_file,
     'c|config:s'       => \$conf_file,
     'e|edit'           => \$edit_conf,
-    'noselfcomp'       => \$noselfcomp,
-    'noknowncomp'      => \$noknowncomp,
-    'nolow'            => \$nolow,
     'o|out:s'          => \$out,
-    'g|gui'            => \$call_gui,
+    'no-low'           => \$no_low,
+    'no-self-comp'     => \$no_self_comp,
+    'no-known-comp'    => \$no_known_comp,
+    'no-rep-blast'     => \$no_rep_blast,
+    'no-nr-blast'      => \$no_nr_blast,
+    'no-fold'          => \$no_fold,
     'd|demo'           => \$demo
 ) or pod2usage(-verbose => 2);
 printVersion() if (defined $version);    
@@ -121,7 +126,7 @@ readConfig($conf_file);
 editConfig() if (defined $edit_conf);
 
 # STEP 1. Mask low complexity sequences
-if (defined $nolow) {
+if (defined $no_low) {
     $mask_seq = $orig_seq;
 }
 else { # mask low complexity sequences, remove bad sequences
@@ -130,32 +135,44 @@ else { # mask low complexity sequences, remove bad sequences
 }
 
 # STEP 2. Self-check-up
-unless (defined $noselfcomp) {
-    $self_file = "$mask_seq.self";
-    selfComp($mask_seq, $self_file);
+unless (defined $no_self_comp) {
+    $self_comp = "$mask_seq.self";
+    selfComp($mask_seq, $self_comp);
 }   
 
 # STEP 3. Sequence alignments
-unless (defined $align_file) {
-    $align_file = "$mask_seq.align";
-    annComp($mask_seq, $ann_seq, $align_file);
+unless (defined $no_known_comp) {
+    $known_comp = "$mask_seq.known";
+    annComp($mask_seq, $known_seq, $known_comp);
 }
 
 # STEP 4. Blast to known repeats
-unless (defined $blastx_file) {
-    $blastx_file = "$mask_seq.blastx";
-    blastxRep($mask_seq, $blastx_file);
+unless (defined $no_rep_blast) {
+    $rep_blast = "$mask_seq.repblast";
+    blastxRep($mask_seq, $rep_blast);
+}
+
+# STEP 5. Blast to NR
+unless (defined $no_nr_blast) {
+    $nr_blast = "$mask_seq.nrblast";
+    blastxNR($mask_seq, $nr_blast);
+}
+
+# STEP 6. Fold sequences
+unless (defined $nofold) {
+    $fold = "$mask_seq.fold";
+    foldSeq($mask_seq, $fold);
 }
 
 warn "RepeatMatcher => done\n" if (defined $verbose);
 
-if (defined $call_gui) {
-    warn "Calling GUI\n" if (defined $verbose);
-    my $cmd  = "perl $repmat_gui -o $out -i $mask_seq -s $self_file -a $align_file -b $blastx_file";
-       $cmd .= " -v" if (defined $verbose);
-    warn "CMD: $cmd\n" if (defined $verbose);
-    system($cmd) unless (defined $demo);
-}
+#if (defined $call_gui) {
+#    warn "Calling GUI\n" if (defined $verbose);
+#    my $cmd  = "perl $repmat_gui -o $out -i $mask_seq -s $self_file -a $align_file -b $blastx_file";
+#       $cmd .= " -v" if (defined $verbose);
+#    warn "CMD: $cmd\n" if (defined $verbose);
+#    system($cmd) unless (defined $demo);
+#}
 
 ###################################
 ####   S U B R O U T I N E S   ####
@@ -182,7 +199,7 @@ sub readConfig {
 }
 
 sub editConfig {
-    my @par = qw/min_mask min_size crossmatch_self crossmatch_comp blastx_rep/;
+    my @par = qw/min_mask min_size crossmatch_self crossmatch_comp blastx_rep blastx_nr fold/;
     my $par = undef;
     my $res = undef;
     print "Manual configuration of parameters\n";
@@ -214,9 +231,13 @@ sub maskLow {
     my $min_len    = $conf{'min_size'};
     warn "Masking low complexity sequences in $in\n" if (defined $verbose);
     my $cmd = "$repeatmasker -low $in";
-    warn "CMD: $cmd\n";
-    system ($cmd) unless (defined $demo);
-    return 1 if (defined $demo); # no filtering in demo mode
+    warn "CMD: $cmd\n" if (defined $verbose);
+    if (defined $demo) {
+        print "$cmd\n";
+        return;
+    }
+    system ($cmd);
+    
     die "cannot run $cmd\n" unless (-e "$in.masked");
     warn "Filtering sequences in $in.masked\n" if (defined $verbose);
     open O, ">$msk" or die "cannot open file $msk\n";
@@ -241,6 +262,12 @@ sub maskLow {
     }
     close O;
     close F;
+    
+    # clean up
+    my @suffix = qw/cat log out ref tbl masked/;
+    foreach my $suffix (@suffix) {
+        unlink "$in.$suffix";
+    }
 }
 
 sub selfComp {
@@ -248,19 +275,13 @@ sub selfComp {
     warn "Running self-comparison for $in\n" if (defined $verbose);
     my $param = $conf{'crossmatch_self'};
     my $cmd = "$crossmatch $in $param > $out";
-    warn "CMD: $cmd\n";
-    system ($cmd) unless (defined $demo);
+    warn "CMD: $cmd\n" if (defined $verbose);
+    if (defined $demo) {
+        print "$cmd\n";
+        return;
+    }
+    system ($cmd);
     die "cannot run $cmd" if (-z $out);
-}
-
-sub blastxRep{
-    my ($in, $out) = @_;
-    warn "Comparing $in to repeat proteins with BlastX\n" if (defined $verbose);
-    my $param = $conf{'blastx_rep'};
-    my $cmd = "$blast -p blastx -i $in -o $out $param";
-    warn "CMD: $cmd\n";
-    system ($cmd) unless (defined $demo);
-    die "cannot run $cmd\n" if (-z $out);
 }
 
 sub annComp {
@@ -268,7 +289,53 @@ sub annComp {
     warn "Running annotation comparison for $in\n" if (defined $verbose);
     my $param = $conf{'crossmatch_comp'};
     my $cmd = "$crossmatch $in $ann $param -alignments > $out";
-    warn "CMD: $cmd\n";
-    system ($cmd) unless (defined $demo);
+    warn "CMD: $cmd\n" if (defined $verbose);
+    if (defined $demo) {
+        print "$cmd\n";
+        return;
+    }
+    system ($cmd);
     die "cannot run $cmd" if (-z $out);
+}
+
+sub blastxRep {
+    my ($in, $out) = @_;
+    warn "Comparing $in to repeat proteins with BlastX\n" if (defined $verbose);
+    my $param = $conf{'blastx_rep'};
+    my $cmd = "$blast -p blastx -i $in -o $out $param";
+    warn "CMD: $cmd\n" if (defined $verbose);
+    if (defined $demo) {
+        print "$cmd\n";
+        return;
+    }
+    system ($cmd);
+    die "cannot run $cmd\n" if (-z $out);
+}
+
+sub blastxNR {
+    my ($in, $out) = @_;
+    warn "Comparing $in to NR with BlastX\n" if (defined $verbose);
+    my $param = $conf{'blastx_nr'};
+    my $cmd = "$blast -p blastx -i $in -o $out $param";
+    warn "CMD: $cmd\n" if (defined $verbose);
+    if (defined $demo) {
+        print "$cmd\n";
+        return;
+    }
+    system ($cmd);
+    die "cannot run $cmd\n" if (-z $out);
+}
+
+sub foldSeq {
+    my ($in, $out) = @_;
+    warn "Folding sequences in $in\n" if (defined $verbose);
+    my $param = $conf{'fold'};
+    my $cmd = "$dnafold $param < $in > $out";
+    warn "CMD: $cmd\n" if (defined $verbose);
+    if (defined $demo) {
+        print "$cmd\n";
+        return;
+    }
+    system ($cmd);
+    die "cannot run $cmd\n" if (-z $out);
 }
