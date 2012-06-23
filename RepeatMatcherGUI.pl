@@ -636,8 +636,8 @@ sub updateSeq {
     
     my $class = $data{$call_id}{'class'};
     
-    my $new_class = $class_entry -> get;
-    my $new_info  = $info_entry  -> get;
+    my $new_class = $class_entry -> get();
+    my $new_info  = $info_entry  -> get();
     $new_class .= '?' if ($question == 1 and $new_class !~ m/\?/);
     my $new = "$call_id#$new_class $new_info";
     
@@ -697,7 +697,9 @@ sub writeFasta {
 
 sub confClass {
     my $rep = shift @_;
-    $class_entry -> configure(-text => $rep);
+    $class_entry -> selectAll;
+    $class_entry -> deleteSelected;
+    $class_entry -> insert('end', "$rep");
 }
  
 sub loadRepClasses {

@@ -91,7 +91,8 @@ my $repeatmasker = 'RepeatMasker';
 my $crossmatch   = 'cross_match';
 my $blast        = 'blastall';
 my $dnafold      = 'RNAfold';
-my $repmat_gui   = 'RepeatMatcherGUI.pl';
+my $ps2png       = 'gs';
+#my $repmat_gui   = 'RepeatMatcherGUI.pl';
 
 # Main variables
 my $our_version = 0.1;
