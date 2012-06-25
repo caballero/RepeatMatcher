@@ -20,7 +20,7 @@ Create a graphic user interface to annotate RepeatModeler consensi.
     -a --align     Alignments of input to a reference (cross_match output)
     -b --repblast  Blast output of repeat peptides comparison (blast output)
     -n --nrblast   Blast output of NR peptides comparison (blast output)
-    -f --fold      Sequence fold output (RNAfold output)
+    -f --fold      Sequence fold output directory (RNAfold output as PNGs)
     -l --log       Write log file here (used to keep track of progress)
     -r --reload    Reload a previous project
 
@@ -31,7 +31,7 @@ Create a graphic user interface to annotate RepeatModeler consensi.
 =head1 EXAMPLES
 
     1. Start a new project
-    perl RepeatMatcherGUI.pl -o OUT -i SEQS -s SELF -a ALIGN -b BLASTX -l LOG
+    perl RepeatMatcherGUI.pl -o OUT -i SEQS -s SELF -a ALIGN -b BLAST -n BLAST -f FOLD -l LOG
 
     2. Reload a started project
     perl RepeatMatcherGUI.pl -r LOG
@@ -70,6 +70,7 @@ use Tk::Hlist;
 use Tk::ROText;
 use Tk::Label;
 use Tk::ItemStyle;
+use Tk::Photo;
 
 # Default parameters
 my $help     = undef;         # Print help
@@ -96,7 +97,7 @@ my $our_version = 0.1;        # Script version number
 #            |-> align    : sequence alignments to reference nucleotides
 #            |-> repblast : sequence alignments to reference peptides
 #            |-> nrblast  : sequence alignments to NR database
-#            |-> fold     : sequence folds
+#            |-> fold     : sequence fold image path
 #            |-> delete   : delete flag
 #            |-> reverse  : reverse flag
 #            |-> newlabel : new (edited) label for sequence
@@ -106,8 +107,8 @@ my $our_version = 0.1;        # Script version number
 my %data;
 my %classes;
 my @classes;
-my $box_width  = 80;
-my $box_height = 25;
+my $box_width  = 100;
+my $box_height = 40;
 my ($call_id, $delete, $reverse, $question);
 
 # Calling options
@@ -139,7 +140,7 @@ else {
     die "missing alignments file (-a)\n"      unless (defined $align);
     die "missing repeats blast file (-b)\n"   unless (defined $repblast);
     die "missing NR blast file (-n)\n"        unless (defined $nrblast);
-    die "missing dna fold file (-f)\n"        unless (defined $fold);
+    die "missing dna fold dir (-f)\n"         unless (defined $fold);
     die "missing output file (-o)\n"          unless (defined $out);
     die "missing exclude file (-e)\n"         unless (defined $exclude);
     startLog($log);
@@ -238,7 +239,7 @@ my $id_hlist      = $mw         ->    Scrolled('HList',
                                                -separator  => '#',
                                                -selectmode => 'single',
                                                -width      => 25, 
-                                               -height     => int(2 * $box_height) - 2,
+                                               -height     => $box_height,
                                                -background => 'white',
                                                -browsecmd  => sub {
                                                                    my $call = shift;
@@ -295,49 +296,51 @@ foreach my $id (@ids) {
 
 
 # Put all objects in a frame
-my $data_frame    = $mw         ->       Frame();
+#my $data_frame    = $mw         ->       Frame();
 # Sequence frame
-my $seq_txt       = $data_frame ->    Scrolled('ROText', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $seq_txt       =  $mw -> Toplevel(-title => 'Sequence'); 
+   $seq_txt       -> Scrolled('ROText', 
+                              -scrollbars => "osoe", 
+                              -width      => $box_width, 
+                              -height     => $box_height,
+                              -background => 'white');
 
 # Align frame
-my $align_txt     = $data_frame ->    Scrolled('ROText', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $align_txt     =  $mw -> Toplevel(-title => 'Alignment with known repeats (nuc)');
+   $align_txt     -> Scrolled('ROText', 
+                              -scrollbars => "osoe", 
+                              -width      => $box_width, 
+                              -height     => $box_height,
+                              -background => 'white');
 
 # Self frame
-my $self_txt      = $data_frame ->    Scrolled('ROText', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $self_txt      =  $mw -> Toplevel(-title => 'Self-alignments');
+   $self_txt      -> Scrolled('ROText', 
+                              -scrollbars => "osoe", 
+                              -width      => $box_width, 
+                              -height     => $box_height,
+                              -background => 'white');
 
 
 # Repeats Blast frame
-my $repblast_txt  = $data_frame ->    Scrolled('ROText', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $repblast_txt  =  $mw -> Toplevel(-title => 'Alignment with known repeats (pep)');
+   $repblast_txt  -> Scrolled('ROText', 
+                              -scrollbars => "osoe", 
+                              -width      => $box_width, 
+                              -height     => $box_height,
+                              -background => 'white');
 
 # NR Blast frame
-my $nrblast_txt   = $data_frame ->    Scrolled('ROText', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $nrblast_txt   =  $mw -> Toplevel(-title => 'Alignment with NR (pep)');
+   $nrblast_txt   -> Scrolled('ROText', 
+                              -scrollbars => "osoe", 
+                              -width      => $box_width, 
+                              -height     => $box_height,
+                              -background => 'white');
 
 # Fold frame
-my $fold_txt      = $data_frame ->    Scrolled('ROText', 
-                                               -scrollbars => "osoe", 
-                                               -width      => $box_width, 
-                                               -height     => $box_height,
-                                               -background => 'white');
+my $fold_img      =  $mw -> Toplevel(-title => 'Sequence folding');
+   $fold_img      -> Photo(-file => "RepeatMatcher.png");
 
 # Geometry
 $id_label      -> grid (-row => 1, -column => 1);
@@ -351,14 +354,6 @@ $update_button -> grid (-row => 1, -column => 8);
 $fasta_button  -> grid (-row => 1, -column => 9);
 $edit_frame    -> grid (-row => 1, -column => 1, -columnspan => 9);
 $id_hlist      -> grid (-row => 2, -column => 1);
-$seq_txt       -> grid (-row => 1, -column => 2);
-$align_txt     -> grid (-row => 1, -column => 3);
-$self_txt      -> grid (-row => 2, -column => 2);
-$repblast_txt  -> grid (-row => 2, -column => 3);
-$nrblast_txt   -> grid (-row => 3, -column => 2);
-$fold_txt      -> grid (-row => 3, -column => 3);
-$data_frame    -> grid (-row => 2, -column => 2, 
-                        -columnspan => 3, -rowspan => 3);
 
 MainLoop();
 
@@ -540,13 +535,16 @@ sub loadNRBlast {
 }
 
 sub loadFold {
-    warn "loading sequence fold in $fold\n" if (defined $verbose);
+    warn "searching sequence folds in $fold\n" if (defined $verbose);
     my $id;
-    open FOLD, "$fold" or die "cannot open file $fold\n";
-
-    #### PUT CODE HERE ####
-    
-    close FOLD;
+    opendir FOLD, "$fold" or die "cannot open dir $fold\n";
+    while (my $png = readdir FOLD) {
+        next unless ($png =~ m/\.png$/);
+        $id = $png;
+        $id =~ s/\.png$//;
+        $data{$id}{'fold'} = "$fold/$png";
+    }    
+    closedir FOLD;
 }
 
 sub callID {
@@ -589,9 +587,9 @@ sub callID {
     $nrblast_txt  -> deleteSelected;
     $nrblast_txt  -> insert('end', $nrblast_);
 
-    $fold_txt     -> selectAll;
-    $fold_txt     -> deleteSelected;
-    $fold_txt     -> insert('end', $fold_);
+    $fold_img     -> selectAll;
+    $fold_img     -> deleteSelected;
+    $fold_img     -> insert('end', $fold_);
 
     $id_label     -> configure(-text => "Repeat: $call_id");
     $class_entry  -> configure(-text => $class_);
