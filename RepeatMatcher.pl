@@ -360,8 +360,8 @@ sub foldSeq {
         else {
             system ($cmd);
             die "cannot run $cmd\n" if (-z "$out/$sid.fold");
-            if (-e 'seq_ss.ps') {
-                system("mv seq_ss.ps $out/$sid.ps");
+            if (-e 'rna.ps') {
+                system("mv rna.ps $out/$sid.ps");
                 system($cmd2);
             }
         }
