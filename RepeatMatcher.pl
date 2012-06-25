@@ -348,7 +348,7 @@ sub foldSeq {
         my $sid = shift @seq;
         $sid =~ s/#.*//g;
         my $seq = join "", @seq;
-        my $cmd = "echo $seq | $dnafold $param > $out/$sid.fold";
+        my $cmd = "echo $seq | $dnafold $fold_param > $out/$sid.fold";
         my $cmd2 = "$ps2png $ps2png_param -sOutputFile=$out/$sid.png $out/$sid.ps";
 
         warn "CMD: $cmd\n"  if (defined $verbose);
