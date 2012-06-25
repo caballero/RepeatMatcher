@@ -335,13 +335,36 @@ sub blastxNR {
 sub foldSeq {
     my ($in, $out) = @_;
     warn "Folding sequences in $in\n" if (defined $verbose);
-    my $param = $conf{'fold'};
-    my $cmd = "$dnafold $param < $in > $out";
-    warn "CMD: $cmd\n" if (defined $verbose);
-    if (defined $demo) {
-        print "$cmd\n";
-        return;
+    unless (-d $out) {
+        mkdir $out or die "cannot create directory\n";
     }
-    system ($cmd);
-    die "cannot run $cmd\n" if (-z $out);
+    my $fold_param   = $conf{'fold'};
+    my $ps2png_param = $conf{'ps2png'};
+    local $/ = "\n>"; # Fasta slurp
+    open F, "$in" or die "cannot open file\n";
+    while (<F>) {
+        s/>//g;
+        my @seq = split (/\n/, $_);
+        my $sid = shift @seq;
+        $sid =~ s/#.*//g
+        my $seq = join "", @seq;
+        my $cmd = "echo $seq | $dnafold $param > $out/$sid.fold";
+        my $cmd2 = "$ps2png $ps2png_param -sOutputFile=$out/$sid.png $out/$sid.ps";
+
+        warn "CMD: $cmd\n"  if (defined $verbose);
+        warn "CMD: $cmd2\n" if (defined $verbose);
+
+        if (defined $demo) {
+            print "$cmd\n$cmd2\n";
+        }
+        else {
+            system ($cmd);
+            die "cannot run $cmd\n" if (-z "$out/$sid.fold");
+            if (-e 'seq_ss.ps') {
+                system("mv seq_ss.ps $out/$sid.ps");
+                system($cmd2);
+            }
+        }
+    }
+    close F;
 }
