@@ -71,6 +71,7 @@ use Tk::ROText;
 use Tk::Label;
 use Tk::ItemStyle;
 use Tk::Photo;
+use Tk::PNG;
 
 # Default parameters
 my $help     = undef;         # Print help
@@ -107,7 +108,7 @@ my $our_version = 0.1;        # Script version number
 my %data;
 my %classes;
 my @classes;
-my $box_width  = 100;
+my $box_width  = 90;
 my $box_height = 40;
 my ($call_id, $delete, $reverse, $question);
 
@@ -211,7 +212,7 @@ my $qm_checkbox   = $edit_frame -> Checkbutton(-text       => '?',
                                                                    $data{$call_id}{'question'} = $question;
                                                               });
 
-my $info_entry    = $edit_frame ->       Entry(-width      => 80, 
+my $info_entry    = $edit_frame ->       Entry(-width      => 60, 
                                                -background => 'white');
 
 my $update_button = $edit_frame ->      Button(-text       => 'Update', 
@@ -294,66 +295,63 @@ foreach my $id (@ids) {
     }
 }
 
+# Geometry
 
-# Put all objects in a frame
-#my $data_frame    = $mw         ->       Frame();
+$id_hlist      -> pack(-side => 'left');
+$edit_frame    -> pack(-side => 'right');
+$id_label      -> grid(-row => 0, -column => 0);
+$class_entry   -> grid(-row => 1, -column => 0);
+$rep_button    -> grid(-row => 1, -column => 1);
+$qm_checkbox   -> grid(-row => 1, -column => 2);
+$info_entry    -> grid(-row => 2, -column => 0, -columnspan => 3);
+$rev_checkbox  -> grid(-row => 0, -column => 1);
+$del_checkbox  -> grid(-row => 0, -column => 2);
+$update_button -> grid(-row => 3, -column => 0);
+$fasta_button  -> grid(-row => 3, -column => 1);
+
 # Sequence frame
-my $seq_txt       =  $mw -> Toplevel(-title => 'Sequence'); 
-   $seq_txt       -> Scrolled('ROText', 
-                              -scrollbars => "osoe", 
-                              -width      => $box_width, 
-                              -height     => $box_height,
-                              -background => 'white');
+my $seq_win       = $mw           -> Toplevel(-title      => 'Sequence'); 
+my $seq_txt       = $seq_win      -> Scrolled('ROText', 
+                                              -scrollbars => "osoe", 
+                                              -width      => $box_width, 
+                                              -height     => $box_height,
+                                              -background => 'white') -> pack(-expand => 1);
 
 # Align frame
-my $align_txt     =  $mw -> Toplevel(-title => 'Alignment with known repeats (nuc)');
-   $align_txt     -> Scrolled('ROText', 
-                              -scrollbars => "osoe", 
-                              -width      => $box_width, 
-                              -height     => $box_height,
-                              -background => 'white');
+my $align_win     = $mw           -> Toplevel(-title      => 'Alignment with known repeats (nuc)');
+my $align_txt     = $align_win    -> Scrolled('ROText', 
+                                              -scrollbars => "osoe", 
+                                              -width      => $box_width, 
+                                              -height     => $box_height,
+                                              -background => 'white') -> pack(-expand => 1);
 
 # Self frame
-my $self_txt      =  $mw -> Toplevel(-title => 'Self-alignments');
-   $self_txt      -> Scrolled('ROText', 
-                              -scrollbars => "osoe", 
-                              -width      => $box_width, 
-                              -height     => $box_height,
-                              -background => 'white');
-
+my $self_win      = $mw           -> Toplevel(-title      => 'Self-alignments');
+my $self_txt      = $self_win     -> Scrolled('ROText', 
+                                              -scrollbars => "osoe", 
+                                              -width      => $box_width, 
+                                              -height     => $box_height,
+                                              -background => 'white') -> pack(-expand => 1);
 
 # Repeats Blast frame
-my $repblast_txt  =  $mw -> Toplevel(-title => 'Alignment with known repeats (pep)');
-   $repblast_txt  -> Scrolled('ROText', 
-                              -scrollbars => "osoe", 
-                              -width      => $box_width, 
-                              -height     => $box_height,
-                              -background => 'white');
+my $repblast_win  =  $mw          -> Toplevel(-title      => 'Alignment with known repeats (pep)');
+my $repblast_txt  = $repblast_win -> Scrolled('ROText', 
+                                              -scrollbars => "osoe", 
+                                              -width      => $box_width, 
+                                              -height     => $box_height,
+                                              -background => 'white') -> pack(-expand => 1);
 
 # NR Blast frame
-my $nrblast_txt   =  $mw -> Toplevel(-title => 'Alignment with NR (pep)');
-   $nrblast_txt   -> Scrolled('ROText', 
-                              -scrollbars => "osoe", 
-                              -width      => $box_width, 
-                              -height     => $box_height,
-                              -background => 'white');
+my $nrblast_win   = $mw           -> Toplevel(-title      => 'Alignment with NR (pep)');
+my $nrblast_txt   = $nrblast_win  -> Scrolled('ROText', 
+                                              -scrollbars => "osoe", 
+                                              -width      => $box_width, 
+                                              -height     => $box_height,
+                                              -background => 'white') -> pack(-expand => 1);
 
 # Fold frame
-my $fold_img      =  $mw -> Toplevel(-title => 'Sequence folding');
-   $fold_img      -> Photo(-file => "RepeatMatcher.png");
-
-# Geometry
-$id_label      -> grid (-row => 1, -column => 1);
-$class_entry   -> grid (-row => 1, -column => 2);
-$rep_button    -> grid (-row => 1, -column => 3);
-$qm_checkbox   -> grid (-row => 1, -column => 4);
-$info_entry    -> grid (-row => 1, -column => 5);
-$rev_checkbox  -> grid (-row => 1, -column => 6);
-$del_checkbox  -> grid (-row => 1, -column => 7);
-$update_button -> grid (-row => 1, -column => 8);
-$fasta_button  -> grid (-row => 1, -column => 9);
-$edit_frame    -> grid (-row => 1, -column => 1, -columnspan => 9);
-$id_hlist      -> grid (-row => 2, -column => 1);
+my $fold_win      = $mw           -> Toplevel(-title      => 'Sequence folding');
+my $fold_img      = $fold_win     ->    Photo(-file       => "RepeatMatcher.png");
 
 MainLoop();
 
@@ -555,7 +553,7 @@ sub callID {
     my $align_    = 'No matches';
     my $repblast_ = 'No matches';
     my $nrblast_  = 'No matches';
-    my $fold_     = 'No fold';
+    my $fold_     = 'RepeatMatcher.png';
     my $class_    = 'No class';
     
     $class_       = $data{$call_id}{'class'}    if (defined $data{$call_id}{'class'});
@@ -587,9 +585,8 @@ sub callID {
     $nrblast_txt  -> deleteSelected;
     $nrblast_txt  -> insert('end', $nrblast_);
 
-    $fold_img     -> selectAll;
-    $fold_img     -> deleteSelected;
-    $fold_img     -> insert('end', $fold_);
+    $fold_img     -> blank;
+    $fold_img     -> read($fold_);
 
     $id_label     -> configure(-text => "Repeat: $call_id");
     $class_entry  -> configure(-text => $class_);
@@ -695,9 +692,7 @@ sub writeFasta {
 
 sub confClass {
     my $rep = shift @_;
-    $class_entry -> selectAll;
-    $class_entry -> deleteSelected;
-    $class_entry -> insert('end', "$rep");
+    $class_entry -> configure(-text => $rep);
 }
  
 sub loadRepClasses {
