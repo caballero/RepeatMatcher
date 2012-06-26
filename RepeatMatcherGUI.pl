@@ -109,7 +109,7 @@ my %data;
 my %classes;
 my @classes;
 my $box_width  = 90;
-my $box_height = 40;
+my $box_height = 30;
 my ($call_id, $delete, $reverse, $question);
 
 # Calling options
@@ -159,49 +159,81 @@ loadRepClasses();
 my @ids = sort (keys %data);
 
 # Create the GUI
-my $mw = MainWindow -> new; # Main Window
-$mw -> title('RepeatMatcherGUI');
+my $mw          =  MainWindow -> new(); # Main Window
+   $mw          -> title('RepeatMatcherGUI');
 
 # Edit frame
-my $edit_frame  = $mw         ->      Frame();
-my $id_label    = $edit_frame ->      Label(-width  => 30);
-my $class_entry = $edit_frame ->      Entry(-width  => 20, -background => 'white');
-my $rep_button  = $edit_frame -> Menubutton(-text   => 'Repeat Family',
-                                            -relief => 'raised'
-                                              );
-my $rep_menu    = $rep_button ->       Menu();
-my $dna_menu    = $rep_menu   ->    cascade(-label  => 'DNA');
-my $dnahat_menu = $rep_menu   ->    cascade(-label  => 'DNA/hAT');
-my $dnatcm_menu = $rep_menu   ->    cascade(-label  => 'DNA/TcMar');
-my $line_menu   = $rep_menu   ->    cascade(-label  => 'LINE');
-my $ltr_menu    = $rep_menu   ->    cascade(-label  => 'LTR');
-my $sine_menu   = $rep_menu   ->    cascade(-label  => 'SINE');
-my $sat_menu    = $rep_menu   ->    cascade(-label  => 'Satellite');
-my $other_menu  = $rep_menu   ->    cascade(-label  => 'Other');
+my $edit_frame  =  $mw         ->      Frame();
+my $id_label    =  $edit_frame ->      Label(-width  => 30);
+my $class_entry =  $edit_frame ->      Entry(-width  => 20, -background => 'white');
+my $rep_button  =  $edit_frame -> Menubutton(-text   => 'Repeat Family',
+                                             -relief => 'raised'
+                                            );
+my $rep_menu    =  $rep_button ->       Menu();
+my $dna_menu    =  $rep_menu   ->    cascade(-label  => 'DNA');
+my $dnahat_menu =  $rep_menu   ->    cascade(-label  => 'DNA/hAT');
+my $dnatcm_menu =  $rep_menu   ->    cascade(-label  => 'DNA/TcMar');
+my $line_menu   =  $rep_menu   ->    cascade(-label  => 'LINE');
+my $ltr_menu    =  $rep_menu   ->    cascade(-label  => 'LTR');
+my $sine_menu   =  $rep_menu   ->    cascade(-label  => 'SINE');
+my $sat_menu    =  $rep_menu   ->    cascade(-label  => 'Satellite');
+my $other_menu  =  $rep_menu   ->    cascade(-label  => 'Other');
 foreach my $rep (@classes) {
     if    ($rep =~ m#^DNA/hAT#) {
-        $dnahat_menu -> command(-label => $rep, -command => \&confClass($rep));
+        $dnahat_menu -> command(-label   => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     elsif ($rep =~ m#^DNA/TcMar#) {
-        $dnatcm_menu -> command(-label => $rep, -command => \&confClass($rep));
+        $dnatcm_menu -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     elsif ($rep =~ m/^DNA/) {
-        $dna_menu    -> command(-label => $rep, -command => \&confClass($rep));
+        $dna_menu    -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     elsif ($rep =~ m/^LINE/) {
-        $line_menu   -> command(-label => $rep, -command => \&confClass($rep));
+        $line_menu   -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     elsif ($rep =~ m/^LTR/) {
-        $ltr_menu    -> command(-label => $rep, -command => \&confClass($rep));
+        $ltr_menu    -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     elsif ($rep =~ m/^SINE/) {
-        $sine_menu   -> command(-label => $rep, -command => \&confClass($rep));
+        $sine_menu   -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     elsif ($rep =~ m/^Satellite/) {
-        $sat_menu    -> command(-label => $rep, -command => \&confClass($rep));
+        $sat_menu    -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
     else {
-        $other_menu  -> command(-label => $rep, -command => \&confClass($rep));
+        $other_menu  -> command(-label => $rep, 
+                                -command => sub { 
+                                                 $class_entry -> configure(-text => $rep); 
+                                                }
+                                );
     }
 }
 $rep_button -> configure(-menu => $rep_menu);
@@ -210,32 +242,37 @@ my $qm_checkbox   = $edit_frame -> Checkbutton(-text       => '?',
                                                -variable   => \$question,
                                                -command    => sub {
                                                                    $data{$call_id}{'question'} = $question;
-                                                              });
+                                                                  }
+                                              );
 
 my $info_entry    = $edit_frame ->       Entry(-width      => 60, 
-                                               -background => 'white');
+                                               -background => 'white'
+                                              );
 
 my $update_button = $edit_frame ->      Button(-text       => 'Update', 
-                                               -command => \&updateSeq);
+                                               -command => \&updateSeq
+                                              );
 
 my $rev_checkbox  = $edit_frame -> Checkbutton(-text       => 'Reverse', 
                                                -variable => \$reverse,
                                                -command    => sub {
                                                                    $data{$call_id}{'reverse'} = $reverse;
-                                                               });
+                                                                  }
+                                              );
 
 my $del_checkbox  = $edit_frame -> Checkbutton(-text       => 'Exclude', 
                                                -variable => \$delete, 
                                                -command    => sub {
                                                                    $data{$call_id}{'delete'} = $delete;
-                                                               }
+                                                                  }
                                               );
 my $fasta_button  = $edit_frame ->      Button(-text       => 'Export Fasta', 
                                                -command    => \&writeFasta
                                               );
 
 # IDs list frame
-my $id_hlist      = $mw         ->    Scrolled('HList', 
+my $id_hlist      = $mw         ->    Scrolled('HList',
+                                               -scrollbars => "ow",
                                                -itemtype   => 'text',
                                                -separator  => '#',
                                                -selectmode => 'single',
@@ -247,28 +284,34 @@ my $id_hlist      = $mw         ->    Scrolled('HList',
                                                                    my @call = split(/#/, $call);
                                                                    $call_id = pop @call;
                                                                    &callID();
-                                                               });
+                                                                  }
+                                              );
 
 my $done_style   = $id_hlist    ->   ItemStyle('text', 
                                                 -foreground => 'blue',
-                                                -background => 'white');
+                                                -background => 'white'
+                                               );
 
 my $done2_style  = $id_hlist    ->   ItemStyle('text', 
                                                -foreground => 'red',
-                                               -background => 'white');
+                                               -background => 'white'
+                                              );
 
 my $undone_style = $id_hlist    ->   ItemStyle('text', 
                                                -foreground => 'black', 
-                                               -background => 'white');
+                                               -background => 'white'
+                                              );
 
 $id_hlist -> add("#",  # root node
                  -text => "#", 
-                 -style => $undone_style); 
+                 -style => $undone_style
+                ); 
 
 foreach my $class (sort keys %classes) {
     $id_hlist -> add("#$class", 
                      -text => $class, 
-                     -style => $undone_style);
+                     -style => $undone_style
+                    );
 }
 
 foreach my $id (@ids) {
@@ -280,18 +323,21 @@ foreach my $id (@ids) {
             $data{$id}{'delete'}  == 1) {
                 $id_hlist -> add("#$class#$id", 
                                  -text => $id, 
-                                 -style => $done2_style);
+                                 -style => $done2_style
+                                );
         }
         else {
                 $id_hlist -> add("#$class#$id", 
                                  -text => $id, 
-                                 -style => $done_style);
+                                 -style => $done_style
+                                );
         }
     }
     else {
                 $id_hlist -> add("#$class#$id", 
                                  -text => $id, 
-                                 -style => $undone_style);
+                                 -style => $undone_style
+                                );
     }
 }
 
@@ -310,12 +356,13 @@ $update_button -> grid(-row => 3, -column => 0);
 $fasta_button  -> grid(-row => 3, -column => 1);
 
 # Sequence frame
-my $seq_win       = $mw           -> Toplevel(-title      => 'Sequence'); 
+my $seq_win       = $mw           -> Toplevel(-title      => 'Sequence');
 my $seq_txt       = $seq_win      -> Scrolled('ROText', 
                                               -scrollbars => "osoe", 
                                               -width      => $box_width, 
                                               -height     => $box_height,
-                                              -background => 'white') -> pack(-expand => 1);
+                                              -background => 'white'
+                                             ) -> pack(-expand => 1);
 
 # Align frame
 my $align_win     = $mw           -> Toplevel(-title      => 'Alignment with known repeats (nuc)');
@@ -323,7 +370,8 @@ my $align_txt     = $align_win    -> Scrolled('ROText',
                                               -scrollbars => "osoe", 
                                               -width      => $box_width, 
                                               -height     => $box_height,
-                                              -background => 'white') -> pack(-expand => 1);
+                                              -background => 'white'
+                                             ) -> pack(-expand => 1);
 
 # Self frame
 my $self_win      = $mw           -> Toplevel(-title      => 'Self-alignments');
@@ -331,7 +379,8 @@ my $self_txt      = $self_win     -> Scrolled('ROText',
                                               -scrollbars => "osoe", 
                                               -width      => $box_width, 
                                               -height     => $box_height,
-                                              -background => 'white') -> pack(-expand => 1);
+                                              -background => 'white'
+                                             ) -> pack(-expand => 1);
 
 # Repeats Blast frame
 my $repblast_win  =  $mw          -> Toplevel(-title      => 'Alignment with known repeats (pep)');
@@ -339,7 +388,8 @@ my $repblast_txt  = $repblast_win -> Scrolled('ROText',
                                               -scrollbars => "osoe", 
                                               -width      => $box_width, 
                                               -height     => $box_height,
-                                              -background => 'white') -> pack(-expand => 1);
+                                              -background => 'white'
+                                             ) -> pack(-expand => 1);
 
 # NR Blast frame
 my $nrblast_win   = $mw           -> Toplevel(-title      => 'Alignment with NR (pep)');
@@ -347,11 +397,19 @@ my $nrblast_txt   = $nrblast_win  -> Scrolled('ROText',
                                               -scrollbars => "osoe", 
                                               -width      => $box_width, 
                                               -height     => $box_height,
-                                              -background => 'white') -> pack(-expand => 1);
+                                              -background => 'white'
+                                             ) -> pack(-expand => 1);
 
 # Fold frame
 my $fold_win      = $mw           -> Toplevel(-title      => 'Sequence folding');
 my $fold_img      = $fold_win     ->    Photo(-file       => "RepeatMatcher.png");
+my $fold_lab      = $fold_win     -> Scrolled('Label',
+                                              -scrollbars => "osoe",
+                                              -image      => $fold_img,
+                                              -width      => 500, 
+                                              -height     => 500,
+                                              -background => 'white'
+                                             ) -> pack(-expand => 1);
 
 MainLoop();
 
@@ -690,11 +748,6 @@ sub writeFasta {
     warn "Done.\n" if (defined $verbose);
 }
 
-sub confClass {
-    my $rep = shift @_;
-    $class_entry -> configure(-text => $rep);
-}
- 
 sub loadRepClasses {
     warn "loading repeat families\n" if (defined $verbose);
     @classes = qw#
