@@ -108,7 +108,7 @@ my $our_version = 0.1;        # Script version number
 my %data;
 my %classes;
 my @classes;
-my $box_width  = 90;
+my $box_width  = 100;
 my $box_height = 30;
 my ($call_id, $delete, $reverse, $question);
 
@@ -356,49 +356,59 @@ $update_button -> grid(-row => 3, -column => 0);
 $fasta_button  -> grid(-row => 3, -column => 1);
 
 # Sequence frame
-my $seq_win       = $mw           -> Toplevel(-title      => 'Sequence');
+my $seq_win       = $mw           -> Toplevel(-title      => 'Sequence',
+                                              -width      => $box_width, 
+                                              -height     => $box_height
+                                             );
 my $seq_txt       = $seq_win      -> Scrolled('ROText', 
                                               -scrollbars => "osoe", 
-                                              -width      => $box_width, 
-                                              -height     => $box_height,
-                                              -background => 'white'
-                                             ) -> pack(-expand => 1);
+                                              -background => 'white',
+                                              -wrap       => 'none'
+                                             ) -> pack(-expand => 1, -fill => 'both');
 
 # Align frame
-my $align_win     = $mw           -> Toplevel(-title      => 'Alignment with known repeats (nuc)');
+my $align_win     = $mw           -> Toplevel(-title      => 'Alignment with known repeats (nuc)',
+                                              -width      => $box_width, 
+                                              -height     => $box_height
+                                             );
 my $align_txt     = $align_win    -> Scrolled('ROText', 
                                               -scrollbars => "osoe", 
-                                              -width      => $box_width, 
-                                              -height     => $box_height,
-                                              -background => 'white'
-                                             ) -> pack(-expand => 1);
+                                              -background => 'white',
+                                              -wrap       => 'none'
+                                             ) -> pack(-expand => 1, -fill => 'both');
 
 # Self frame
-my $self_win      = $mw           -> Toplevel(-title      => 'Self-alignments');
-my $self_txt      = $self_win     -> Scrolled('ROText', 
-                                              -scrollbars => "osoe", 
+my $self_win      = $mw           -> Toplevel(-title      => 'Self-alignments',
                                               -width      => $box_width, 
-                                              -height     => $box_height,
-                                              -background => 'white'
-                                             ) -> pack(-expand => 1);
+                                              -height     => $box_height
+                                             );
+my $self_txt      = $self_win     -> Scrolled('ROText', 
+                                              -scrollbars => "se", 
+                                              -background => 'white',
+                                              -wrap       => 'none'
+                                             ) -> pack(-expand => 1, -fill => 'both');
 
 # Repeats Blast frame
-my $repblast_win  =  $mw          -> Toplevel(-title      => 'Alignment with known repeats (pep)');
+my $repblast_win  =  $mw          -> Toplevel(-title      => 'Alignment with known repeats (pep)',
+                                              -width      => $box_width, 
+                                              -height     => $box_height
+                                             );
 my $repblast_txt  = $repblast_win -> Scrolled('ROText', 
                                               -scrollbars => "osoe", 
-                                              -width      => $box_width, 
-                                              -height     => $box_height,
-                                              -background => 'white'
-                                             ) -> pack(-expand => 1);
+                                              -background => 'white',
+                                              -wrap       => 'none'
+                                             ) -> pack(-expand => 1, -fill => 'both');
 
 # NR Blast frame
-my $nrblast_win   = $mw           -> Toplevel(-title      => 'Alignment with NR (pep)');
+my $nrblast_win   = $mw           -> Toplevel(-title      => 'Alignment with NR (pep)',
+                                              -width      => $box_width, 
+                                              -height     => $box_height
+                                             );
 my $nrblast_txt   = $nrblast_win  -> Scrolled('ROText', 
                                               -scrollbars => "osoe", 
-                                              -width      => $box_width, 
-                                              -height     => $box_height,
-                                              -background => 'white'
-                                             ) -> pack(-expand => 1);
+                                              -background => 'white',
+                                              -wrap       => 'none'
+                                             ) -> pack(-expand => 1, -fill => 'both');
 
 # Fold frame
 my $fold_win      = $mw           -> Toplevel(-title      => 'Sequence folding');
@@ -406,10 +416,10 @@ my $fold_img      = $fold_win     ->    Photo(-file       => "RepeatMatcher.png"
 my $fold_lab      = $fold_win     -> Scrolled('Label',
                                               -scrollbars => "osoe",
                                               -image      => $fold_img,
-                                              -width      => 500, 
-                                              -height     => 500,
+                                              -width      => 600, 
+                                              -height     => 600,
                                               -background => 'white'
-                                             ) -> pack(-expand => 1);
+                                             ) -> pack(-expand => 1, -fill => 'both');
 
 MainLoop();
 
@@ -525,15 +535,37 @@ sub loadAlign {
 
 sub loadSelf {
     warn "loading self-comparison in $self\n" if (defined $verbose);
-    my $id;
+    my ($id1, $id2, $score, $left, $right, $dir);
+    my %seen;
     open SELF, "$self" or die "cannot open file $self\n";
     while (<SELF>) {
-       if (m/^\s*\d+.+(rnd-\d+_family-\d+)#/) {
-           $id = $1;
-           $data{$id}{'self'} .= $_;
+        next unless (m/^\s*\d+.+rnd-\d+_family-\d+#.+rnd-\d+_family-\d+#/);
+       chomp;
+       s/^\s*//;
+       s/\s+/\t/g;
+       my @line  = split (/\t/, $_);
+       $score = "$line[0]\t$line[1]\t$line[2]\t$line[3]";
+       $id1   = $line[4];
+       $id1   =~ s/#.+$//;
+       $left  = "$line[4]\t$line[5]\t$line[6]\t$line[7]";
+       if ($line[8] eq 'C') {
+           $dir    = '-';
+           $id2    = $line[9];
+           $right  = "$line[9]\t$line[10]\t$line[11]\t$line[12]";
        }
+       else {
+           $dir    = '+';
+           $id2    = $line[8];
+           $right  = "$line[8]\t$line[9]\t$line[10]\t$line[11]";
+       }
+       $id2   =~ s/#.+$//;
+       $data{$id1}{'self'} .= "$score\t$left\t$right\t$dir\n" unless (defined $seen{"$left:$right"});
+       $data{$id2}{'self'} .= "$score\t$right\t$left\t$dir\n" unless (defined $seen{"$right:$left"});
+       $seen{"$left:$right"} = 1;
+       $seen{"$right:$left"} = 1;
     }
     close SELF;
+    %seen = ();
 }
 
 sub loadRepBlast {
