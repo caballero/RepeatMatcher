@@ -417,7 +417,7 @@ my $fold_lab      = $fold_win     -> Scrolled('Label',
                                               -scrollbars => "osoe",
                                               -image      => $fold_img,
                                               -width      => 600, 
-                                              -height     => 600,
+                                              -height     => 300,
                                               -background => 'white'
                                              ) -> pack(-expand => 1, -fill => 'both');
 
