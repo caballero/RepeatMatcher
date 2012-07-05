@@ -91,7 +91,8 @@ my $repeatmasker = 'RepeatMasker';
 my $crossmatch   = 'cross_match';
 my $blast        = 'blastall';
 my $dnafold      = 'RNAfold';
-my $ps2png       = 'gs';
+my $fold2png     = 'plotR4RNA.sh';
+#my $ps2png       = 'gs';
 #my $repmat_gui   = 'RepeatMatcherGUI.pl';
 
 # Main variables
@@ -349,22 +350,31 @@ sub foldSeq {
         $sid =~ s/#.*//g;
         my $seq = join "", @seq;
         my $cmd = "echo $seq | $dnafold $fold_param > $out/$sid.fold";
-        my $cmd2 = "$ps2png $ps2png_param -sOutputFile=$out/$sid.png $out/$sid.ps";
+        #my $cmd2 = "$ps2png $ps2png_param -sOutputFile=$out/$sid.png $out/$sid.ps";
 
         warn "CMD: $cmd\n"  if (defined $verbose);
-        warn "CMD: $cmd2\n" if (defined $verbose);
+        #warn "CMD: $cmd2\n" if (defined $verbose);
 
         if (defined $demo) {
-            print "$cmd\n$cmd2\n";
+        #    print "$cmd\n$cmd2\n";
+            print "$cmd\n";
         }
         else {
             system ($cmd);
             die "cannot run $cmd\n" if (-z "$out/$sid.fold");
-            if (-e 'rna.ps') {
-                system("mv rna.ps $out/$sid.ps");
-                system($cmd2);
-            }
+            #if (-e 'rna.ps') {
+            #    system("mv rna.ps $out/$sid.ps");
+            #    system($cmd2);
+            #}
         }
     }
     close F;
+    
+    my $cmd2 = "$fold2png";
+    chdir $out;
+    if (defined $demo) {
+        print "$cmd2\n";
+    }
+    else {
+        system ($cmd2);
 }
