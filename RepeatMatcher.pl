@@ -6,18 +6,18 @@ RepeatMatcher.pl
 
 =head1 DESCRIPTION
 
-Create an automatic pipeline to annotate repeats from RepeatModeler.
+Automatic pipeline to annotate repeats from RepeatModeler.
 
-WARNING: you must have RepeatMasker, Blast and Cross_Match in your system.
+WARNING: you must have RepeatMasker, R:, Blast and Cross_Match in your system.
 
 =head1 USAGE
 
 RepeatMatcher.pl [PARAMETERS]
 
-     Parameters       Description                 Type        Default
+     Parameters       Description                 Type
      -s --sequences   RepeatModeler sequences     Fasta
      -k --known       Known repeat annotation     Fasta
-     -c --config      Configuration file          File
+     -c --config      Configuration file          Text
      -o --out         Base name for files         
      -e --edit        Edit configuration
      -d --demo        Don't run the commands, show the commands instead
@@ -41,7 +41,7 @@ RepeatMatcher.pl [PARAMETERS]
 
 =head1 AUTHOR
 
-Juan Caballero, Institute for Systems Biology @ 2012
+Juan Caballero, RepeatMaker.org - Institute for Systems Biology @ 2012
 
 =head1 CONTACT
 
@@ -92,8 +92,6 @@ my $crossmatch   = 'cross_match';
 my $blast        = 'blastall';
 my $dnafold      = 'RNAfold';
 my $fold2png     = 'plotR4RNA.sh';
-#my $ps2png       = 'gs';
-#my $repmat_gui   = 'RepeatMatcherGUI.pl';
 
 # Main variables
 my $our_version = 0.1;
@@ -119,9 +117,9 @@ GetOptions(
     'no-fold'          => \$no_fold,
     'd|demo'           => \$demo
 ) or pod2usage(-verbose => 2);
-printVersion() if (defined $version);    
-pod2usage(-verbose => 2) if (defined $help);
-pod2usage(-verbose => 2) unless (defined $orig_seq);
+printVersion()           if  (defined $version);    
+pod2usage(-verbose => 2) if  (defined $help);
+pod2usage(-verbose => 2) if !(defined $orig_seq);
 
 unless (defined $out) {
     $out = $orig_seq;
@@ -173,14 +171,6 @@ unless (defined $no_fold) {
 
 warn "RepeatMatcher => done\n" if (defined $verbose);
 
-#if (defined $call_gui) {
-#    warn "Calling GUI\n" if (defined $verbose);
-#    my $cmd  = "perl $repmat_gui -o $out -i $mask_seq -s $self_file -a $align_file -b $blastx_file";
-#       $cmd .= " -v" if (defined $verbose);
-#    warn "CMD: $cmd\n" if (defined $verbose);
-#    system($cmd) unless (defined $demo);
-#}
-
 ###################################
 ####   S U B R O U T I N E S   ####
 ###################################
@@ -192,8 +182,8 @@ sub printVersion {
 
 sub readConfig {
     my $in = shift @_;
-    die "Configuration file is missing\n" unless (-e $in);
-    warn "Reading configuration from $in\n" if (defined $verbose);
+    die  "Configuration file is missing\n"  if !(-e $in);
+    warn "Reading configuration from $in\n" if  (defined $verbose);
     open CONF, "$in" or die "cannot open file $in\n";
     while (<CONF>) {
         next if (m/^#/);
@@ -249,7 +239,7 @@ sub maskLow {
     warn "Filtering sequences in $in.masked\n" if (defined $verbose);
     open O, ">$msk" or die "cannot open file $msk\n";
     open F, "$in.masked" or die "cannot open file $in.masked\n";
-    $/ = "\n>"; # slurp mode for Fasta
+    local $/ = "\n>"; # slurp mode for Fasta
     while (<F>) {
         s/>//g;
         my @seq  =  split (/\n/, $_);
@@ -350,31 +340,45 @@ sub foldSeq {
         $sid =~ s/#.*//g;
         my $seq = join "", @seq;
         my $cmd = "echo $seq | $dnafold $fold_param > $out/$sid.fold";
-        #my $cmd2 = "$ps2png $ps2png_param -sOutputFile=$out/$sid.png $out/$sid.ps";
 
         warn "CMD: $cmd\n"  if (defined $verbose);
-        #warn "CMD: $cmd2\n" if (defined $verbose);
-
         if (defined $demo) {
-        #    print "$cmd\n$cmd2\n";
             print "$cmd\n";
         }
         else {
             system ($cmd);
             die "cannot run $cmd\n" if (-z "$out/$sid.fold");
-            #if (-e 'rna.ps') {
-            #    system("mv rna.ps $out/$sid.ps");
-            #    system($cmd2);
-            #}
         }
     }
     close F;
-    
-    my $cmd2 = "$fold2png";
-    chdir $out;
-    if (defined $demo) {
-        print "$cmd2\n";
+    convertFold2PNG($out); 
+}
+
+sub convertFold2PNG {
+    my $dir = shift;
+    my $w   = 600;
+    my $h   = 300;
+    my $cmd = 'R --vanilla --quiet < R.scr';
+    chdir $dir;
+    opendir D, "." or die "cannot read $dir\n";
+    while (my $f = readdir D) {
+        next unless ($f =~ m/fold$/);
+        my $png = $f;
+        $png =~ s/fold/png/;
+        my $rcmd = '';
+        $rcmd   .= "library(R4RNA)\n";
+        $rcmd   .= "rna <- readVienna(\"$f\")\n";
+        $rcmd   .= "png(\"$png\", width=$w, height=$h)\n";
+        $rcmd   .= "plotHelix(rna)\n";
+        if (defined $demo) {
+           print "$rcmd\n$cmd\n";
+        }
+        else { 
+           open  R, ">R.scr" or die "cannot create R.scr\n";
+           print R $rcmd;
+           close R;
+           system($cmd);
+        }
     }
-    else {
-        system ($cmd2);
+    unlink "R.scr";
 }
