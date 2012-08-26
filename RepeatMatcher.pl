@@ -196,7 +196,7 @@ sub readConfig {
 }
 
 sub editConfig {
-    my @par = qw/min_mask min_size crossmatch_self crossmatch_comp blastx_rep blastx_nr fold/;
+    my @par = qw/min_mask min_size crossmatch_self crossmatch_comp blastx_rep blastx_nr fold plot_w plot_h/;
     my $par = undef;
     my $res = undef;
     print "Manual configuration of parameters\n";
@@ -356,8 +356,8 @@ sub foldSeq {
 
 sub convertFold2PNG {
     my $dir = shift;
-    my $w   = 600;
-    my $h   = 300;
+    my $w   = $conf{'plot_w'}; $w ||= 600;
+    my $h   = $conf{'plot_h'}; $h ||= 300;
     my $cmd = 'R --vanilla --quiet < R.scr';
     chdir $dir;
     opendir D, "." or die "cannot read $dir\n";
