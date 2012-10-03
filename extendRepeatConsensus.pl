@@ -16,7 +16,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -i --in         Consensus Fasta
     -g --genome     Genome Fasta
     -o --out        Output fasta
-    -s --size       Step size per iteration                           [10]
+    -s --size       Step size per iteration                           [5]
     -x --engine     Alignment engine                                  [blastn]
     -e --evalue     Minimal evalue for matches                        [1e-20]
     -n --numseqs    Maximal number of sequences to try extending      [500]
@@ -74,7 +74,7 @@ my $version  =    undef;         # Version call flag
 my $in       =    undef;
 my $genome   =    undef;
 my $out      =    undef;
-my $size     =       10;
+my $size     =        5;
 my $engine   = 'blastn';
 my $evalue   = 1 / 1e20;
 my $numseq   =      500;
