@@ -128,15 +128,17 @@ my ($lab, $rep) = readFasta($in);
 my $new = '';
 my %genome = ();
 loadGenome($genome);
-
+my $iter = 1;
 ###################################
 ####        M A I N            ####
 ###################################
 while (1) {
+    warn "extending repeat, iter: $iter\n" if (defined $verbose);
     $new = extendRepeat($rep);
     my $len_old = length $rep;
     my $len_new = length $new;
     last if ($len_old == $len_new);
+    $iter++;
 }
 printFasta("$lab | extended", $new, $out);
 
@@ -150,6 +152,7 @@ sub printVersion {
 
 sub readFasta {
     my $file = shift @_;
+    warn "reading file $file\n" if (defined $verbose);
     my ($name, $seq);
     open F, "$file" or die "cannot open $file\n";
     while (<F>) {
@@ -167,6 +170,7 @@ sub readFasta {
 
 sub printFasta {
     my ($head, $seq, $file) = @_;
+    warn "writing file $file\n" if (defined $verbose);
     open  F, ">$file" or die "cannot write $file\n";
     print F "$head\n";
     while ($seq) {
@@ -181,6 +185,7 @@ sub checkIndex {
     my ($engine, $genome) = @_;
     if ($engine eq 'blastn') {
         unless (-e "$genome.nhr" and -e "$genome.nin" and -e "$genome.nsq") {
+            warn "missing indexes for $genome, generating them\n" if (defined $verbose);
             system ("$formatdb -i $genome -p F -o F");
         }
     }
@@ -195,6 +200,7 @@ sub checkCmd {
 
 sub loadGenome {
     my ($file) = @_;
+    warn "reading file $file\n" if (defined $verbose);
     open F, "$file" or die "cannot open $file\n";
     my $name = '';
     while (<F>) {
@@ -243,6 +249,8 @@ sub extendRepeat {
         $null  = $right =~ tr/N/N/;
         $right = '' if ($null >= $maxn);
     }
+    
+    warn "extensions: left=$left, right=$rigth\n" if (defined $verbose);
     $new   = "$left$rep$right";
     return $new;
 }
@@ -326,6 +334,8 @@ sub checkDiv {
     elsif ($div == 20) { $par = "-M $matrix_dir/20p41g.matrix -gap_init -28 -gap_ext -6 -minscore 7 -minmatch 200"; }
     elsif ($div == 25) { $par = "-M $matrix_dir/25p41g.matrix -gap_init -25 -gap_ext -5 -minscore 7 -minmatch 200"; }
     else  { die "Wrong divergence value, use [14,18,20,25]\n"; }
+    
+    warn "div=$div, cm_param=$par\n" if (defined $verbose);
     return $par;
 }
 
