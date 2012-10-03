@@ -240,13 +240,13 @@ sub extendRepeat {
     }
     else { die "search engine $engine isn't supported\n"; }
       
-    if ($#left_seqs  >= $minseq) {
+    if (($#left_seqs + 1)  >= $minseq) {
         $cons  = createConsensus("$ext$rep", @left_seqs);
         $left  = substr($cons, 0, $size);
         $null  = $left =~ tr/N/N/;
         $left  = '' if ($null >= $maxn);
     }
-    if ($#right_seqs >= $minseq) {
+    if (($#right_seqs + 1) >= $minseq) {
         $cons  = createConsensus("$rep$ext", @right_seqs);
         $right = substr($cons, (length $cons) - $size, $size);
         $null  = $right =~ tr/N/N/;
@@ -309,7 +309,7 @@ sub parseBlastRight {
 sub createConsensus {
     my $rep = shift @_;
     open  R, ">$temp.rep.fa" or die "cannot write $temp.rep.fa\n";
-    print R ">rep0\n$rep\n";
+    print R  ">rep0\n$rep\n";
     close R;
     
     open  F, ">$temp.repseq.fa" or die "cannot write $temp.repseq.fa\n";
