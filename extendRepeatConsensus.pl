@@ -311,7 +311,8 @@ sub createConsensus {
     open  F, ">$temp.repseq.fa" or die "cannot write $temp.repseq.fa\n";
     my $i = 1;
     while (my $seq = shift @_) {
-        print ">rep$i\n$seq\n";
+        print F ">rep$i\n$seq\n";
+        $i++;
     }
     close F;
     
