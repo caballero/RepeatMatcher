@@ -265,9 +265,11 @@ sub parseBlastLeft {
         next if ($qini > $win);
         next if ($len  < $minlen);
         if ($hini < $hend) { # hit f-f
+            next if ($hini < $size);
             push @seqs, substr($genome{$hit}, $hini - $qini - 1, ($hend - $hini) + $size);
         }
         else {               # hit f-r
+            next if ($hend < $size);
             push @seqs, revcomp(substr($genome{$hit}, $hini + $qini - 1, ($hini - $hend) + $size));
         }
     }
