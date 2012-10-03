@@ -318,7 +318,7 @@ sub createConsensus {
     }
     close F;
     
-    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out >& $temp.cm_log";
+    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out";
     
     system "$linup $temp.cm_out $matrix_dir/linupmatrix > $temp.ali";
     
