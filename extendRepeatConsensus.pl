@@ -21,7 +21,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -e --evalue     Minimal evalue for matches                        [1e-20]
     -n --numseqs    Maximal number of sequences to try extending      [500]
     -m --minseqs    Minimal number of sequences to continue extending [3]
-    -l --minlen     Minimal length of sequences                       [200]
+    -l --minlen     Minimal length of sequences                       [100]
     -d --div        Divergence level (14,18,20,25)                    [14]
     -x --maxn       Maximal number of no-bases in extension           [2]
     -w --win        Extension window                                  [100]
@@ -79,7 +79,7 @@ my $engine   = 'blastn';
 my $evalue   = 1 / 1e20;
 my $numseq   =      500;
 my $minseq   =        3;
-my $minlen   =      200;
+my $minlen   =      100;
 my $div      =       14;
 my $maxn     =        2;
 my $win      =      100;
