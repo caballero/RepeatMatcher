@@ -228,15 +228,18 @@ sub extendRepeat {
     my $right       = '';
     my $cons        = '';
     my $null        = '';
-    my $new         = $rep;
     my $ext         = 'Z' x $size;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     close F;
     if ($engine eq 'blastn') {
         system ("$blast -p blastn -e $evalue -i $temp.fa -d $genome -m 8 -o $temp.out");
-        @left_seqs  = parseBlastLeft ("$temp.out") unless (defined $no5p);
-        @right_seqs = parseBlastRight("$temp.out", length $rep) unless (defined $no3p);
+        unless (defined $no5p) {
+            @left_seqs  = parseBlastLeft ("$temp.out");
+        }
+        unless (defined $no3p) {
+            @right_seqs = parseBlastRight("$temp.out", length $rep);
+        }
     }
     else { die "search engine $engine isn't supported\n"; }
       
@@ -254,8 +257,7 @@ sub extendRepeat {
     }
     
     warn "extensions: left=$left, right=$right\n" if (defined $verbose);
-    $new   = "$left$rep$right";
-    return $new;
+    return "$left$rep$right";
 }
 
 sub parseBlastLeft {
