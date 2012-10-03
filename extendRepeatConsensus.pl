@@ -285,9 +285,11 @@ sub parseBlastRight {
         next if ($qend < ($len - $win));
         next if ($len  < $minlen);
         if ($hini < $hend) { # hit f-f
+            next if (($hend + $size) > length $genome{$hit}); 
             push @seqs, substr($genome{$hit}, $hend + ($len - $qend) - 1, ($hend - $hini) + $size);
         }
         else {               # hit f-r
+            next if (($hini + $size) > length $genome{$hit});
             push @seqs, revcomp(substr($genome{$hit}, $hend - ($len - $qend) - 1, ($hini - $hend) + $size));
         }
     }
