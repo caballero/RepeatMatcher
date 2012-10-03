@@ -94,6 +94,9 @@ my $formatdb    = '/usr/local/blast/bin/formatdb';
 my $cross_match = '/usr/local/bin/cross_match';
 my $linup       = '/home/asmit/bin/Linup';
 my $matrix_dir  = '/home/asmit/Matrices';
+my $new         = '';
+my %genome      = ();
+my %genome_len  = ();
 
 # Calling options
 GetOptions(
@@ -125,10 +128,9 @@ checkCmd();
 checkIndex($engine, $genome);
 my $cm_param    = checkDiv($div);
 my ($lab, $rep) = readFasta($in);
-my $new = '';
-my %genome = ();
+my $iter        = 1;
 loadGenome($genome);
-my $iter = 1;
+
 ###################################
 ####        M A I N            ####
 ###################################
@@ -212,6 +214,7 @@ sub loadGenome {
         }
         else {
             $genome{$name} .= $_;
+            $genome_len{$name} += length $_;
         }
     }
     close F;
@@ -287,12 +290,12 @@ sub parseBlastRight {
         next if ($qend < ($len - $win));
         next if ($len  < $minlen);
         if ($hini < $hend) { # hit f-f
-            next if (($hend + $size) > length $genome{$hit}); 
+            next if (($hend + $size) > $genome_len{$hit}); 
             push @seqs, substr($genome{$hit}, $hend + ($len - $qend) - 1, ($hend - $hini) + $size);
         }
         else {               # hit f-r
-            next if (($hini + $size) > length $genome{$hit});
-            push @seqs, revcomp(substr($genome{$hit}, $hend - ($len - $qend) - 1, ($hini - $hend) + $size));
+            next if (($hini + $size) > $genome_len{$hit});
+            push @seqs, revcomp(substr($genome{$hit}, $hend - 1, ($hini - $hend) + $size));
         }
     }
     close F;
