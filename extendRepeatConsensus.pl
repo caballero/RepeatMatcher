@@ -251,7 +251,7 @@ sub extendRepeat {
     }
     
     warn "extensions: left=$left, right=$rigth\n" if (defined $verbose);
-    $new   = "$left$rep$right";
+    $new   = "$left$rep$rigth";
     return $new;
 }
 
