@@ -234,7 +234,7 @@ sub extendRepeat {
     print F  ">repeat\n$rep\n";
     close F;
     if ($engine eq 'blastn') {
-        system ("$blast -p blastn -e $evalue -i $temp.fa -d $genome -m 8 -o $temp.out -v $numseq -b $numseq");
+        system ("$blast -p blastn -e $evalue -i $temp.fa -d $genome -m 8 -o $temp.out");
         @left_seqs  = parseBlastLeft ("$temp.out") unless (defined $no5p);
         @right_seqs = parseBlastRight("$temp.out", length $rep) unless (defined $no3p);
     }
@@ -275,6 +275,7 @@ sub parseBlastLeft {
             next if ($hend < $size);
             push @seqs, revcomp(substr($genome{$hit}, $hini + $qini - 1, ($hini - $hend) + $size));
         }
+        last if (($#seqs + 1 ) >= $numseq); 
     }
     close F;
     return @seqs;
@@ -297,6 +298,7 @@ sub parseBlastRight {
             next if (($hini + $size) > $genome_len{$hit});
             push @seqs, revcomp(substr($genome{$hit}, $hend - 1, ($hini - $hend) + $size));
         }
+        last if (($#seqs + 1 ) >= $numseq); 
     }
     close F;
     return @seqs;
@@ -316,7 +318,7 @@ sub createConsensus {
     }
     close F;
     
-    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out";
+    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out >& $temp.cm_log";
     
     system "$linup $temp.cm_out $matrix_dir/linupmatrix > $temp.ali";
     
