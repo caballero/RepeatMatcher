@@ -24,7 +24,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -l --minlen     Minimal length of sequences                       [100]
     -d --div        Divergence level (14,18,20,25)                    [14]
     -x --maxn       Maximal number of no-bases in extension           [2]
-    -w --win        Extension window                                  [100]
+    -w --win        Extension window                                  [300]
     --no3p          Don't extend to 3'
     --no5p          Don't extend to 5'
     -t --temp       Temporary file names                              [temp]
@@ -82,7 +82,7 @@ my $minseq   =        3;
 my $minlen   =      100;
 my $div      =       14;
 my $maxn     =        2;
-my $win      =      100;
+my $win      =      300;
 my $no3p     =    undef;
 my $no5p     =    undef;
 my $temp     =   'temp';
