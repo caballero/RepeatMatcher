@@ -260,6 +260,7 @@ sub extendRepeat {
 
 sub parseBlastLeft {
     my ($file) = @_;
+    warn "parsing left matches from $file\n" if (defined $verbose);
     my @seqs   = ();
     open F, "$file" or die "cannot open $file\n";
     while (<F>) {
@@ -283,6 +284,7 @@ sub parseBlastLeft {
 
 sub parseBlastRight {
     my ($file, $len) = @_;
+    warn "parsing right matches from $file\n" if (defined $verbose);
     my @seqs   = ();
     open F, "$file" or die "cannot open $file\n";
     while (<F>) {
