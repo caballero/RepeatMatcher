@@ -250,8 +250,8 @@ sub extendRepeat {
         $right = '' if ($null >= $maxn);
     }
     
-    warn "extensions: left=$left, right=$rigth\n" if (defined $verbose);
-    $new   = "$left$rep$rigth";
+    warn "extensions: left=$left, right=$right\n" if (defined $verbose);
+    $new   = "$left$rep$right";
     return $new;
 }
 
