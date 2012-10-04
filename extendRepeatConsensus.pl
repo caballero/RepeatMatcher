@@ -24,7 +24,9 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -l --minlen     Minimal length of sequences                       [100]
     -d --div        Divergence level (14,18,20,25)                    [14]
     -x --maxn       Maximal number of no-bases in extension           [2]
-    -w --win        Extension window                                  [200]
+    -w --win        Extension window                                  [100]
+    --minscore      Cross_match minscore                              [200]
+    --minmatch      Cross_match minmatch                              [7]
     --no3p          Don't extend to 3'
     --no5p          Don't extend to 5'
     -t --temp       Temporary file names                              [temp]
@@ -86,6 +88,8 @@ my $win      =      200;
 my $no3p     =    undef;
 my $no5p     =    undef;
 my $temp     =   'temp';
+my $minmatch =        7;
+my $minscore =      200;
 
 # Main variables
 my $our_version = 0.1;        # Script version number
@@ -115,6 +119,8 @@ GetOptions(
     'm|minseq:i'        => \$minseq,
     'z|maxn:i'          => \$maxn,
     'w|win:i'           => \$win,
+    'minscore:i'        => \$minscore,
+    'minmatch:i'        => \$minmatch,
     'no3p'              => \$no3p,
     'no5p'              => \$no5p
 ) or pod2usage(-verbose => 2);
@@ -350,10 +356,10 @@ sub createConsensus {
 sub checkDiv {
     my ($div) = @_;
     my $par   = '';
-    if    ($div == 14) { $par = "-M $matrix_dir/14p41g.matrix -gap_init -33 -gap_ext -6 -minscore 7 -minmatch 200"; }
-    elsif ($div == 18) { $par = "-M $matrix_dir/18p41g.matrix -gap_init -30 -gap_ext -6 -minscore 7 -minmatch 200"; }
-    elsif ($div == 20) { $par = "-M $matrix_dir/20p41g.matrix -gap_init -28 -gap_ext -6 -minscore 7 -minmatch 200"; }
-    elsif ($div == 25) { $par = "-M $matrix_dir/25p41g.matrix -gap_init -25 -gap_ext -5 -minscore 7 -minmatch 200"; }
+    if    ($div == 14) { $par = "-M $matrix_dir/14p41g.matrix -gap_init -33 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
+    elsif ($div == 18) { $par = "-M $matrix_dir/18p41g.matrix -gap_init -30 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
+    elsif ($div == 20) { $par = "-M $matrix_dir/20p41g.matrix -gap_init -28 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
+    elsif ($div == 25) { $par = "-M $matrix_dir/25p41g.matrix -gap_init -25 -gap_ext -5 -minscore $minscore -minmatch $minmatch"; }
     else  { die "Wrong divergence value, use [14,18,20,25]\n"; }
     
     warn "div=$div, cm_param=$par\n" if (defined $verbose);
