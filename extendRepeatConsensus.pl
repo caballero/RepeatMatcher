@@ -146,6 +146,7 @@ while (1) {
     my $len_old = length $rep;
     my $len_new = length $new;
     last if ($len_old == $len_new);
+    $rep = $new;
     $iter++;
 }
 printFasta("$lab | extended", $new, $out);
