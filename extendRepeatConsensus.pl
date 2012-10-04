@@ -346,6 +346,7 @@ sub createConsensus {
         chomp;
         next unless (m/^consensus/);
         s/consensus\s+\d+\s+//;
+        s/\s+\d+$//;
         s/-//g;
         $con .= $_;
     }
