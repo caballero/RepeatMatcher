@@ -16,4 +16,4 @@ $NCBIEngine->setQuery( "./gator_annotation/rep" );
 $NCBIEngine->setSubject( "./gator_annotation/allMis0.fa" );
 my $searchResults = $NCBIEngine->search();
 
-print Dumper($searchResults);
+print Dumper($searchResults->[0]);
