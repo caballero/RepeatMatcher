@@ -16,8 +16,8 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -i --in         Consensus Fasta
     -g --genome     Genome Fasta
     -o --out        Output fasta
-    -s --size       Step size per iteration                           [5]
-    -x --engine     Alignment engine                                  [blastn]
+    -s --size       Step size per iteration                           [8]
+    -x --engine     Alignment engine (blast, wublast)                 [wublast]
     -e --evalue     Minimal evalue for matches                        [1e-20]
     -n --numseqs    Maximal number of sequences to try extending      [500]
     -m --minseqs    Minimal number of sequences to continue extending [3]
@@ -68,6 +68,10 @@ use strict;
 use warnings;
 use Getopt::Long;
 use Pod::Usage;
+use lib './lib';
+use NCBIBlastSearchEngine;
+use CrossmatchSearchEngine;
+use WUBlastSearchEngine;
 
 # Default parameters
 my $help     =    undef;         # Print help
@@ -76,7 +80,7 @@ my $version  =    undef;         # Version call flag
 my $in       =    undef;
 my $genome   =    undef;
 my $out      =    undef;
-my $size     =        5;
+my $size     =        8;
 my $engine   = 'blastn';
 my $evalue   = 1 / 1e20;
 my $numseq   =      500;
@@ -93,9 +97,6 @@ my $minscore =      200;
 
 # Main variables
 my $our_version = 0.1;        # Script version number
-my $blast       = '/usr/local/bin/blastall';
-my $formatdb    = '/usr/local/blast/bin/formatdb';
-my $cross_match = '/usr/local/bin/cross_match';
 my $linup       = '/home/asmit/bin/Linup';
 my $matrix_dir  = '/home/asmit/Matrices';
 my $new         = '';
@@ -179,33 +180,36 @@ sub readFasta {
 
 sub printFasta {
     my ($head, $seq, $file) = @_;
+    my $col = 80;
     warn "writing file $file\n" if (defined $verbose);
     open  F, ">$file" or die "cannot write $file\n";
     print F "$head\n";
     while ($seq) {
-        my $s = substr($seq, 0, 70);
+        my $s = substr($seq, 0, $col);
         print F "$s\n";
-        substr($seq, 0, 70) = '';
+        substr($seq, 0, $col) = '';
     }
     close F;
 }
 
 sub checkIndex {
     my ($engine, $genome) = @_;
-    if ($engine eq 'blastn') {
+    if ($engine eq 'blast') {
         unless (-e "$genome.nhr" and -e "$genome.nin" and -e "$genome.nsq") {
             warn "missing indexes for $genome, generating them\n" if (defined $verbose);
             system ("$formatdb -i $genome -p F -o F");
         }
     }
+    elsif ($engine eq 'wublast') {
+        unless (-e "$genome.xnd" and -e "$genome.xns" and -e "$genome.xnt") {
+            warn "missing indexes for $genome, generating them\n" if (defined $verbose);
+            system ("$formatdb -i $genome -p F -o F");
+        }
+    }
+    else {
+        die "Engine $engine is not supported\n";
+    }
 }
-
-sub checkCmd {
-    die "blastall is missing\n"    if !(-e $blast);
-    die "formatdb is missing\n"    if !(-e $formatdb);
-    die "cross_match is missing\n" if !(-e $cross_match);
-    die "Linup is missing\n"       if !(-e $linup);
-}   
 
 sub loadGenome {
     my ($file) = @_;
