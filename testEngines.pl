@@ -15,5 +15,5 @@ $NCBIEngine->setMatrix( "/home/asmit/Matrices/simple.matrix" );
 $NCBIEngine->setQuery( "./gator_annotation/rep" );
 $NCBIEngine->setSubject( "./gator_annotation/allMis0.fa" );
 my $searchResults = $NCBIEngine->search();
-
-print Dumper($searchResults->[0]);
+$Data::Dumper::Indent = 3;
+print Dumper($searchResults);
