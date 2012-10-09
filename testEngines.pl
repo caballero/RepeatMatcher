@@ -15,6 +15,7 @@ $NCBIEngine->setQuery( "./gator_annotation/rep" );
 $NCBIEngine->setSubject( "./gator_annotation/allMis0.fa" );
 my $searchResults = $NCBIEngine->search();
 
-foreach my $obj (@$searchResults) {
-    print "$obj\n";
+while ($searchResults->next) {
+    print join "\t", $searchResults->queryName, $searchResults->queryStart, $searchResults->queryEnd;
+    print "\n";
 }
