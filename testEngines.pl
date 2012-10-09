@@ -11,11 +11,11 @@ use SearchResultCollection;
 use Data::Dumper;
 use ArrayListIterator;
 
-my $NCBIEngine = NCBIBlastSearchEngine->new( pathToEngine=>"/usr/local/rmblast/bin/rmblastn" );
-$NCBIEngine->setMatrix( "/home/asmit/Matrices/simple.matrix" );
-$NCBIEngine->setQuery( "./gator_annotation/rep" );
-$NCBIEngine->setSubject( "./gator_annotation/allMis0.fa" );
-my $searchResults = $NCBIEngine->search();
+my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn" );
+$Engine->setMatrix( "/home/asmit/Matrices/nt/wumatrix" );
+$Engine->setQuery( "./gator_annotation/rep" );
+$Engine->setSubject( "./gator_annotation/allMis0.fa" );
+my $searchResults = $Engine->search();
 
 while (my $res = $searchResults->next()) {
     print Dumper $res;
