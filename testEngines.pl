@@ -10,7 +10,7 @@ use SearchEngineI;
 use SearchResultCollection;
 
 my $NCBIEngine = NCBIBlastSearchEngine->new(pathToEngine=>"/usr/local/rmblast/bin/rmblastn" );
-$NCBIEngine->setMatrix( "/users/asmit/Matrices/simple.matrix" );
+$NCBIEngine->setMatrix( "/home/asmit/Matrices/simple.matrix" );
 $NCBIEngine->setQuery( "./gator_annotation/rep" );
 $NCBIEngine->setSubject( "./gator_annotation/allMis0.fa" );
 my $searchResults = $NCBIEngine->search();
