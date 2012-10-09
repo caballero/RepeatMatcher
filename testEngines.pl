@@ -8,7 +8,7 @@ use WUBlastSearchEngine;
 use CrossmatchSearchEngine;
 use SearchEngineI;
 use SearchResultCollection;
-use Data::Dumpler;
+use Data::Dumper;
 
 my $NCBIEngine = NCBIBlastSearchEngine->new(pathToEngine=>"/usr/local/rmblast/bin/rmblastn" );
 $NCBIEngine->setMatrix( "/home/asmit/Matrices/simple.matrix" );
