@@ -8,6 +8,7 @@ use WUBlastSearchEngine;
 use CrossmatchSearchEngine;
 use SearchEngineI;
 use SearchResultCollection;
+use Data::Dumpler;
 
 my $NCBIEngine = NCBIBlastSearchEngine->new(pathToEngine=>"/usr/local/rmblast/bin/rmblastn" );
 $NCBIEngine->setMatrix( "/home/asmit/Matrices/simple.matrix" );
@@ -15,7 +16,4 @@ $NCBIEngine->setQuery( "./gator_annotation/rep" );
 $NCBIEngine->setSubject( "./gator_annotation/allMis0.fa" );
 my $searchResults = $NCBIEngine->search();
 
-while ($searchResults->next) {
-    print join "\t", $searchResults->queryName, $searchResults->queryStart, $searchResults->queryEnd;
-    print "\n";
-}
+print Dumper($searchResults);
