@@ -165,7 +165,7 @@ loadGenome($genome);
 ####        M A I N            ####
 ###################################
 while (1) {
-    warn "extending repeat, iter: $iter\n" if (defined $verbose);
+    warn "extending repeat\n" if (defined $verbose);
     $new = extendRepeat($rep);
     my $len_old = length $rep;
     my $len_new = length $new;
@@ -328,7 +328,7 @@ sub extendRepeat {
         my $seq    = '';
         next if ($score < $minscore);
         next if ($hLen  < $minlen);
-        
+        warn "testing no5p: $conf{'no5p'}, no3p: $conf{'no3p'}\n" if (defined $verbose); 
         if ($conf{'no5p'} != 0) {
             if ($qStart > $win and $hStart < $size) {
                 $seq = substr($genome{$hName}, $hStart - $qStart - 1, $hLen + $size);
@@ -371,6 +371,8 @@ sub extendRepeat {
 sub createConsensus {
     my $rep = shift @_;
     my $temp = $conf{'temp'};
+    warn "creating consensus\n" if (defined $verbose);
+    
     open  R, ">$temp.rep.fa" or die "cannot write $temp.rep.fa\n";
     print R  ">rep0\n$rep\n";
     close R;
@@ -383,9 +385,9 @@ sub createConsensus {
     }
     close F;
     
-    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out";
+    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out 2> /dev/null";
     
-    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali";
+    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
     
     my $con = '';
     open A, "$temp.ali" or die "cannot open file $temp.ali\n";
