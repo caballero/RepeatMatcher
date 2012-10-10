@@ -152,7 +152,7 @@ elsif ($conf{'engine'} eq 'rmblast') {
     $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
 }
-else { die "search engine not supported: $engine\n"; }
+else { die "search engine not supported: $conf{'engine'}\n"; }
 
 checkCmd();
 checkIndex($conf{'engine'}, $genome);
