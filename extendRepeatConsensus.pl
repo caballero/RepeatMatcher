@@ -133,6 +133,7 @@ GetOptions(
     'w|win:i'           => \$conf{'win'},
     'minscore:i'        => \$conf{'minscore'},
     'minmatch:i'        => \$conf{'minmatch'},
+    'x|matrix:s'        => \$conf{'matrix'},
     'no3p'              => \$conf{'no3p'},
     'no5p'              => \$conf{'no5p'}
 ) or pod2usage(-verbose => 2);
