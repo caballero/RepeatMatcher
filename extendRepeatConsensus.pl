@@ -146,11 +146,11 @@ pod2usage(-verbose => 2) if !(defined $genome);
 $matrix = $conf{'matrix'};
 
 if ($conf{'engine'} eq 'wublast') {
-    $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
+    $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast, DEBUG => 2);
     $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
 }
 elsif ($conf{'engine'} eq 'rmblast') {
-    $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
+    $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast, DEBUG => 2);
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
 }
 else { die "search engine not supported: $conf{'engine'}\n"; }
