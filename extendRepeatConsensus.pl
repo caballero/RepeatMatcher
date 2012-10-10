@@ -103,12 +103,12 @@ my %conf     = (
 
 # Main variables
 my $our_version = 0.1;
-my $linup       = '/home/asmit/bin/Linup';
+my $linup       = './Linup';
 my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
 my $makeblastdb = '/usr/local/rmblast/bin/makeblastdb';
 my $wublast     = '/usr/local/wublast/blastn';
 my $xdformat    = '/usr/local/wublast/xdformat';
-my $matrix_dir  = '/usr/local/RepeatMasker/Matrices';
+my $matrix_dir  = './Matrices';
 my $cross_match = '/usr/local/bin/cross_match';
 my $new         = '';
 my %genome      = ();
@@ -146,7 +146,7 @@ if ($conf{'engine'} eq 'wublast') {
     $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
     $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
 }
-elsif ($conf{'engine'} eq 'wublast') {
+elsif ($conf{'engine'} eq 'rmblast') {
     $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
 }
@@ -383,7 +383,7 @@ sub createConsensus {
     
     system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out";
     
-    system "$linup $temp.cm_out $matrix_dir/linupmatrix > $temp.ali";
+    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali";
     
     my $con = '';
     open A, "$temp.ali" or die "cannot open file $temp.ali\n";
@@ -414,10 +414,10 @@ sub checkDiv {
     my $par      = '';
     my $minscore = $conf{'minscore'};
     my $minmatch = $conf{'minmatch'};
-    if    ($div == 14) { $par = "-M $matrix_dir/14p41g.matrix -gap_init -33 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
-    elsif ($div == 18) { $par = "-M $matrix_dir/18p41g.matrix -gap_init -30 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
-    elsif ($div == 20) { $par = "-M $matrix_dir/20p41g.matrix -gap_init -28 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
-    elsif ($div == 25) { $par = "-M $matrix_dir/25p41g.matrix -gap_init -25 -gap_ext -5 -minscore $minscore -minmatch $minmatch"; }
+    if    ($div == 14) { $par = "-M $matrix_dir/crossmatch/14p41g.matrix -gap_init -33 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
+    elsif ($div == 18) { $par = "-M $matrix_dir/crossmatch/18p41g.matrix -gap_init -30 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
+    elsif ($div == 20) { $par = "-M $matrix_dir/crossmatch/20p41g.matrix -gap_init -28 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
+    elsif ($div == 25) { $par = "-M $matrix_dir/crossmatch/25p41g.matrix -gap_init -25 -gap_ext -5 -minscore $minscore -minmatch $minmatch"; }
     else  { die "Wrong divergence value, use [14,18,20,25]\n"; }
     
     warn "div=$div, cm_param=$par\n" if (defined $verbose);
