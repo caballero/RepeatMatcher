@@ -154,7 +154,6 @@ elsif ($conf{'engine'} eq 'rmblast') {
 }
 else { die "search engine not supported: $conf{'engine'}\n"; }
 
-checkCmd();
 checkIndex($conf{'engine'}, $genome);
 my $cm_param    = checkDiv($conf{'div'});
 my ($lab, $rep) = readFasta($in);
