@@ -18,7 +18,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -o --out      Output fasta
     -s --size     Step size per iteration                           [       8]
     -e --engine   Alignment engine (rmblast, wublast)               [ wublast]
-    -x --matrix   Score matrix                                      [wumatrix]
+    -x --matrix   Score matrix                             [14p35g.matrix.4.4]
     -c --score    Minimal score                                     [     200]
     -n --numseqs  Maximal number of sequences to try extending      [     500]
     -m --minseqs  Minimal number of sequences to continue extending [       3]
@@ -99,21 +99,21 @@ my %conf     = (
     temp     => 'temp',
     minmatch => 7,
     minscore => 200,
-    matrix   => 'wumatrix');
+    matrix   => '14p35g.matrix.4.4');
 
 # Main variables
 my $our_version = 0.1;
 my $linup       = '/home/asmit/bin/Linup';
 my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
-my $formatdb    = '/usr/local/rmblast/bin/formatdb';
+my $makeblastdb = '/usr/local/rmblast/bin/makeblastdb';
 my $wublast     = '/usr/local/wublast/blastn';
-my $wuformatdb  = '/usr/local/wublast/formatdb';
-my $matrix_dir  = '/home/asmit/Matrices';
-my $cross_match = '/usr/local/cross_match/cross_match';
+my $xdformat    = '/usr/local/wublast/xdformat';
+my $matrix_dir  = '/usr/local/RepeatMasker/Matrices';
+my $cross_match = '/usr/local/bin/cross_match';
 my $new         = '';
 my %genome      = ();
 my %genome_len  = ();
-my $searchResult;
+my ($searchResult, $status, $Engine, $path_to_matrix);
 
 # Calling options
 GetOptions(
@@ -141,6 +141,16 @@ pod2usage(-verbose => 2) if  (defined $help);
 pod2usage(-verbose => 2) if !(defined $in);
 pod2usage(-verbose => 2) if !(defined $out);
 pod2usage(-verbose => 2) if !(defined $genome);
+
+if ($conf{'engine'} eq 'wublast') {
+    $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
+    $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
+}
+elsif ($conf{'engine'} eq 'wublast') {
+    $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
+    $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
+}
+else { die "search engine not supported: $engine\n"; }
 
 checkCmd();
 checkIndex($conf{'engine'}, $genome);
@@ -238,13 +248,13 @@ sub checkIndex {
     if ($engine eq 'rmblast') {
         unless (-e "$genome.nhr" and -e "$genome.nin" and -e "$genome.nsq") {
             warn "missing indexes for $genome, generating them\n" if (defined $verbose);
-            system ("$formatdb -i $genome -p F -o F");
+            system ("$makeblastdb -in $genome -dbtype nucl");
         }
     }
     elsif ($engine eq 'wublast') {
         unless (-e "$genome.xnd" and -e "$genome.xns" and -e "$genome.xnt") {
             warn "missing indexes for $genome, generating them\n" if (defined $verbose);
-            system ("$wuformatdb -i $genome -p F -o F");
+            system ("$xdformat -n $genome");
         }
     }
     else {
@@ -289,28 +299,17 @@ sub extendRepeat {
     my $maxn        = $conf{'maxn'};
     my $size        = $conf{'size'};
     my $win         = $conf{'win'};
-    my $engine      = $conf{'engine'};
     my $ext         = 'Z' x $size;
-    my $Engine;
-    my $searchResults;
     my $hits;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     close F;
-    if ($engine eq 'wublast') {
-        $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
-        $Engine->setMatrix("$matrix_dir/nt/$matrix");
-    }
-    elsif ($engine eq 'wublast') {
-        $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
-        $Engine->setMatrix("$matrix_dir/$matrix");
-    }
-    else {
-        die "Search engine $engine not supported\n";
-    }
+
     $Engine->setQuery("$temp.fa");
     $Engine->setSubject($genome);
-    $searchResults = $Engine->search();
+    ($status, $searchResults) = $Engine->search();
+    die "Search returned an error: $status\n" if (defined $status)
+    
     $hits = $searchResults->size();
 
     warn "Found $hits candidate hits\n" if (defined $verbose);
