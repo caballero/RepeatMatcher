@@ -12,30 +12,30 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
 
     perl extendRepeatConsensus.pl [PARAM]
 
-    Parameter       Description                                       Default
-    -i --in         Consensus Fasta
-    -g --genome     Genome Fasta
-    -o --out        Output fasta
-    -s --size       Step size per iteration                           [       8]
-    -e --engine     Alignment engine (rmblast, wublast)               [ wublast]
-    -x --matrix     Score matrix                                      [wumatrix]
-    -c --score      Minimal score                                     [     200]
-    -n --numseqs    Maximal number of sequences to try extending      [     500]
-    -m --minseqs    Minimal number of sequences to continue extending [       3]
-    -l --minlen     Minimal length of sequences                       [     100]
-    -d --div        Divergence level (14,18,20,25)                    [      14]
-    -z --maxn       Maximal number of no-bases in extension           [       2]
-    -w --win        Extension window                                  [     100]
-    --minscore      Cross_match minscore                              [     200]
-    --minmatch      Cross_match minmatch                              [       7]
-    -t --temp       Temporary file names                              [    temp]
-    -a --auto       Run auto mode (non-interactive)
-    --no3p          Don't extend to 3'
-    --no5p          Don't extend to 5'
+    Parameter     Description                                       Default
+    -i --in       Consensus Fasta
+    -g --genome   Genome Fasta
+    -o --out      Output fasta
+    -s --size     Step size per iteration                           [       8]
+    -e --engine   Alignment engine (rmblast, wublast)               [ wublast]
+    -x --matrix   Score matrix                                      [wumatrix]
+    -c --score    Minimal score                                     [     200]
+    -n --numseqs  Maximal number of sequences to try extending      [     500]
+    -m --minseqs  Minimal number of sequences to continue extending [       3]
+    -l --minlen   Minimal length of sequences                       [     100]
+    -d --div      Divergence level (14,18,20,25)                    [      14]
+    -z --maxn     Maximal number of no-bases in extension           [       2]
+    -w --win      Extension window                                  [     100]
+    --minscore    Cross_match minscore                              [     200]
+    --minmatch    Cross_match minmatch                              [       7]
+    -t --temp     Temporary file names                              [    temp]
+    -a --auto     Run auto mode (non-interactive)
+    --no3p        Don't extend to 3'
+    --no5p        Don't extend to 5'
     
-    -h --help       Print this screen and exit
-    -v --verbose    Verbose mode on
-    --version       Print version and exit
+    -h --help     Print this screen and exit
+    -v --verbose  Verbose mode on
+    --version     Print version and exit
 
 =head1 EXAMPLES
 
@@ -86,25 +86,30 @@ my $genome   =     undef;
 my $out      =     undef;
 my $auto     =     undef;
 my %conf     = (
-    size     =>         8,
+    size     => 8,
     engine   => 'wublast',
-    numseq   =>       500,
-    minseq   =>         3,
-    minlen   =>       100,
-    div      =>        14,
-    maxn     =>         2,
-    win      =>       100,
-    no3p     =>         0,
-    no5p     =>         0,
-    temp     =>    'temp',
-    minmatch =>         7,
-    minscore =>       200,
-    matrix   => '/home/asmit/Matrices/nt/wumatrix'
-);
+    numseq   => 500,
+    minseq   => 3,
+    minlen   => 100,
+    div      => 14,
+    maxn     => 2,
+    win      => 100,
+    no3p     => 0,
+    no5p     => 0,
+    temp     => 'temp',
+    minmatch => 7,
+    minscore => 200,
+    matrix   => 'wumatrix');
 
 # Main variables
-my $our_version = 0.1;        # Script version number
+my $our_version = 0.1;
 my $linup       = '/home/asmit/bin/Linup';
+my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
+my $formatdb    = '/usr/local/rmblast/bin/formatdb';
+my $wublast     = '/usr/local/wublast/blastn';
+my $wuformatdb  = '/usr/local/wublast/formatdb';
+my $matrix_dir  = '/home/asmit/Matrices';
+my $cross_match = '/usr/local/cross_match/cross_match';
 my $new         = '';
 my %genome      = ();
 my %genome_len  = ();
@@ -138,10 +143,10 @@ pod2usage(-verbose => 2) if !(defined $out);
 pod2usage(-verbose => 2) if !(defined $genome);
 
 checkCmd();
-checkIndex($engine, $genome);
-my $cm_param    = checkDiv($div);
+checkIndex($conf{'engine'}, $genome);
+my $cm_param    = checkDiv($conf{'div'});
 my ($lab, $rep) = readFasta($in);
-my $iter        = 1;
+my $iter        = 0;
 loadGenome($genome);
 
 ###################################
@@ -157,15 +162,16 @@ while (1) {
     $iter++;
     next if (defined $auto);
     
-    print "ITER #$i\n";
-    my ($left, $right) = readBlocks("$temp.ali");
+    my $res;
+    print "ITER #$iter\n";
+    my ($left, $right) = readBlocks($conf{'temp'}.'ali');
     
-    unless (defined $no5p) {
+    if ($conf{'no5p'} != 0) {
         print "LEFT BLOCK:\n$left\n";
         print "PRESS ANY KEY TO CONTINUE\n";
         $res = <>;
     }
-    unless (defined $no3p) {
+    if ($conf{'no3p'} != 0) {
         print "RIGHT BLOCK:\n$right\n";
         print "PRESS ANY KEY TO CONTINUE\n";
         $res = <>;
@@ -202,7 +208,7 @@ sub readFasta {
     open F, "$file" or die "cannot open $file\n";
     while (<F>) {
         chomp;
-        if (m/>/) {
+        if (/>/) {
             $name = $_;
         }
         else {
@@ -229,7 +235,7 @@ sub printFasta {
 
 sub checkIndex {
     my ($engine, $genome) = @_;
-    if ($engine eq 'blast') {
+    if ($engine eq 'rmblast') {
         unless (-e "$genome.nhr" and -e "$genome.nin" and -e "$genome.nsq") {
             warn "missing indexes for $genome, generating them\n" if (defined $verbose);
             system ("$formatdb -i $genome -p F -o F");
@@ -238,7 +244,7 @@ sub checkIndex {
     elsif ($engine eq 'wublast') {
         unless (-e "$genome.xnd" and -e "$genome.xns" and -e "$genome.xnt") {
             warn "missing indexes for $genome, generating them\n" if (defined $verbose);
-            system ("$formatdb -i $genome -p F -o F");
+            system ("$wuformatdb -i $genome -p F -o F");
         }
     }
     else {
@@ -259,7 +265,7 @@ sub loadGenome {
             $name = $_;
         }
         else {
-            $genome{$name} .= $_;
+            $genome{$name}     .= $_;
             $genome_len{$name} += length $_;
         }
     }
@@ -274,21 +280,69 @@ sub extendRepeat {
     my $right       = '';
     my $cons        = '';
     my $null        = '';
+    my $temp        = $conf{'temp'};
+    my $matrix      = $conf{'matrix'};
+    my $minlen      = $conf{'minlen'};
+    my $minscore    = $conf{'minscore'};
+    my $minseqs     = $conf{'minseqs'};
+    my $numseqs     = $conf{'numseqs'};
+    my $maxn        = $conf{'maxn'};
+    my $size        = $conf{'size'};
+    my $win         = $conf{'win'};
+    my $engine      = $conf{'engine'};
     my $ext         = 'Z' x $size;
+    my $Engine;
+    my $searchResults;
+    my $hits;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     close F;
-    if ($engine eq 'blastn') {
-        system ("$blast -p blastn -e $evalue -i $temp.fa -d $genome -m 8 -o $temp.out");
-        unless (defined $no5p) {
-            @left_seqs  = parseBlastLeft ("$temp.out");
-        }
-        unless (defined $no3p) {
-            @right_seqs = parseBlastRight("$temp.out", length $rep);
-        }
+    if ($engine eq 'wublast') {
+        $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
+        $Engine->setMatrix("$matrix_dir/nt/$matrix");
     }
-    else { 
-        die "search engine $engine isn't supported\n"; 
+    elsif ($engine eq 'wublast') {
+        $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
+        $Engine->setMatrix("$matrix_dir/$matrix");
+    }
+    else {
+        die "Search engine $engine not supported\n";
+    }
+    $Engine->setQuery("$temp.fa");
+    $Engine->setSubject($genome);
+    $searchResults = $Engine->search();
+    $hits = $searchResults->size();
+
+    warn "Found $hits candidate hits\n" if (defined $verbose);
+    for ( my $i = 0 ; $i < $hits; $i++ ) {
+        my $qName  = $searchResults->get( $i )->getQueryName;
+        my $qStart = $searchResults->get( $i )->getQueryStart;
+        my $qEnd   = $searchResults->get( $i )->getQueryEnd;
+        my $hName  = $searchResults->get( $i )->getSubjName;
+        my $hStart = $searchResults->get( $i )->getSubjStart;
+        my $hEnd   = $searchResults->get( $i )->getSubjEnd;
+        my $dir    = $searchResults->get( $i )->getOrientation;
+        my $score  = $searchResults->get( $i )->getScore;
+        my $hLen   = $hEnd - $hStart;
+        my $seq    = '';
+        next if ($score < $minscore);
+        next if ($hLen  < $minlen);
+        
+        if ($conf{'no5p'} != 0) {
+            if ($qStart > $win and $hStart < $size) {
+                $seq = substr($genome{$hName}, $hStart - $qStart - 1, $hLen + $size);
+                $seq = revcomp($seq) if ($dir eq 'C' or $dir eq '-' or $dir eq 'R');    
+                push @left_seqs, $seq if (($#left_seqs + 1 ) <= $numseqs);
+            }
+        }
+        
+        if ($conf{'no3p'} != 0) {
+            if ($qEnd < ($hLen - $win) and ($hEnd + $size) <= $genome_len{$hName}) {
+                $seq = substr($genome{$hName}, $hEnd + ($hLen - $qEnd) - 1, $hLen + $size);
+                $seq = revcomp($seq) if ($dir eq 'C' or $dir eq '-' or $dir eq 'R');    
+                push @right_seqs, $seq if (($#right_seqs + 1 ) <= $numseqs);
+            }
+        }
     }
     
     my $nleft  = scalar @left_seqs;
@@ -296,13 +350,13 @@ sub extendRepeat {
     
     warn "$nleft in left side, $nright in right side\n" if (defined $verbose); 
       
-    if (($#left_seqs + 1)  >= $minseq) {
+    if (($#left_seqs + 1)  >= $minseqs) {
         $cons  = createConsensus("$ext$rep", @left_seqs);
         $left  = substr($cons, 0, $size);
         $null  = $left =~ tr/N/N/;
         $left  = '' if ($null >= $maxn);
     }
-    if (($#right_seqs + 1) >= $minseq) {
+    if (($#right_seqs + 1) >= $minseqs) {
         $cons  = createConsensus("$rep$ext", @right_seqs);
         $right = substr($cons, (length $cons) - $size, $size);
         $null  = $right =~ tr/N/N/;
@@ -313,56 +367,9 @@ sub extendRepeat {
     return "$left$rep$right";
 }
 
-sub parseBlastLeft {
-    my ($file) = @_;
-    warn "parsing left matches from $file\n" if (defined $verbose);
-    my @seqs   = ();
-    open F, "$file" or die "cannot open $file\n";
-    while (<F>) {
-        chomp;
-        my ($qry, $hit, $div, $len, $mis, $gap, $qini, $qend, $hini, $hend, $e, $sco) = split (/\t/, $_);
-        next if ($qini > $win);
-        next if ($len  < $minlen);
-        if ($hini < $hend) { # hit f-f
-            next if ($hini < $size);
-            push @seqs, substr($genome{$hit}, $hini - $qini - 1, ($hend - $hini) + $size);
-        }
-        else {               # hit f-r
-            next if ($hend < $size);
-            push @seqs, revcomp(substr($genome{$hit}, $hini + $qini - 1, ($hini - $hend) + $size));
-        }
-        last if (($#seqs + 1 ) >= $numseq); 
-    }
-    close F;
-    return @seqs;
-}
-
-sub parseBlastRight {
-    my ($file, $len) = @_;
-    warn "parsing right matches from $file\n" if (defined $verbose);
-    my @seqs   = ();
-    open F, "$file" or die "cannot open $file\n";
-    while (<F>) {
-        chomp;
-        my ($qry, $hit, $div, $len, $mis, $gap, $qini, $qend, $hini, $hend, $e, $sco) = split (/\t/, $_);
-        next if ($qend < ($len - $win));
-        next if ($len  < $minlen);
-        if ($hini < $hend) { # hit f-f
-            next if (($hend + $size) > $genome_len{$hit}); 
-            push @seqs, substr($genome{$hit}, $hend + ($len - $qend) - 1, ($hend - $hini) + $size);
-        }
-        else {               # hit f-r
-            next if (($hini + $size) > $genome_len{$hit});
-            push @seqs, revcomp(substr($genome{$hit}, $hend - 1, ($hini - $hend) + $size));
-        }
-        last if (($#seqs + 1 ) >= $numseq); 
-    }
-    close F;
-    return @seqs;
-}
-
 sub createConsensus {
     my $rep = shift @_;
+    my $temp = $conf{'temp'};
     open  R, ">$temp.rep.fa" or die "cannot write $temp.rep.fa\n";
     print R  ">rep0\n$rep\n";
     close R;
@@ -404,8 +411,10 @@ sub readBlocks {
 }
 
 sub checkDiv {
-    my ($div) = @_;
-    my $par   = '';
+    my ($div)    = @_;
+    my $par      = '';
+    my $minscore = $conf{'minscore'};
+    my $minmatch = $conf{'minmatch'};
     if    ($div == 14) { $par = "-M $matrix_dir/14p41g.matrix -gap_init -33 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
     elsif ($div == 18) { $par = "-M $matrix_dir/18p41g.matrix -gap_init -30 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
     elsif ($div == 20) { $par = "-M $matrix_dir/20p41g.matrix -gap_init -28 -gap_ext -6 -minscore $minscore -minmatch $minmatch"; }
