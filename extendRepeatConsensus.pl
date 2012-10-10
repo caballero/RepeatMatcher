@@ -99,7 +99,7 @@ my %conf     = (
     temp     => 'temp',
     minmatch => 7,
     minscore => 200,
-    matrix   => '14p35g.matrix.4.4');
+    matrix   => 'wumatrix');
 
 # Main variables
 my $our_version = 0.1;
