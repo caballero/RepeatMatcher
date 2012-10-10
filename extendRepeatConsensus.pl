@@ -310,7 +310,7 @@ sub extendRepeat {
     $Engine->setQuery("$temp.fa");
     $Engine->setSubject($genome);
     ($status, $searchResults) = $Engine->search();
-    die "Search returned an error: $status\n" if (defined $status);
+    die "Search returned an error: $status\n" if ($status > 0);
     
     $hits = $searchResults->size();
 
