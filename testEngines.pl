@@ -5,7 +5,6 @@ use warnings;
 use lib './lib';
 use NCBIBlastSearchEngine;
 use WUBlastSearchEngine;
-use CrossmatchSearchEngine;
 use SearchEngineI;
 use SearchResultCollection;
 
