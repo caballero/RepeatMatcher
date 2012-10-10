@@ -113,7 +113,7 @@ my $cross_match = '/usr/local/bin/cross_match';
 my $new         = '';
 my %genome      = ();
 my %genome_len  = ();
-my ($searchResult, $status, $Engine, $path_to_matrix);
+my ($searchResults, $status, $Engine, $matrix);
 
 # Calling options
 GetOptions(
@@ -141,6 +141,8 @@ pod2usage(-verbose => 2) if  (defined $help);
 pod2usage(-verbose => 2) if !(defined $in);
 pod2usage(-verbose => 2) if !(defined $out);
 pod2usage(-verbose => 2) if !(defined $genome);
+
+$matrix = $conf{'matrix'};
 
 if ($conf{'engine'} eq 'wublast') {
     $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
@@ -308,7 +310,7 @@ sub extendRepeat {
     $Engine->setQuery("$temp.fa");
     $Engine->setSubject($genome);
     ($status, $searchResults) = $Engine->search();
-    die "Search returned an error: $status\n" if (defined $status)
+    die "Search returned an error: $status\n" if (defined $status);
     
     $hits = $searchResults->size();
 
