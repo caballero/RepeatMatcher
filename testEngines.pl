@@ -10,13 +10,14 @@ use SearchEngineI;
 use SearchResultCollection;
 
 my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn" );
-$Engine->setMatrix( "/home/asmit/Matrices/nt/wumatrix" );
-$Engine->setQuery( "./gator_annotation/rep" );
-$Engine->setSubject( "./gator_annotation/allMis0.fa" );
+$Engine->setMatrix( "./Matrices/wublast/nt/wumatrix" );
+$Engine->setQuery( "repeat.fa" );
+$Engine->setSubject( "allMis0.fa" );
 my $searchResults = $Engine->search();
 
+open WU, ">tests.wublast" or die;
 my $hits = $searchResults->size();
-print "WU-Blast found $hits hits\n";
+print WU "WU-Blast found $hits hits\n";
 for ( my $i = 0 ; $i < $hits; $i++ ) {
     my $qName  = $searchResults->get( $i )->getQueryName;
     my $qStart = $searchResults->get( $i )->getQueryStart;
@@ -26,17 +27,19 @@ for ( my $i = 0 ; $i < $hits; $i++ ) {
     my $hEnd   = $searchResults->get( $i )->getSubjEnd;
     my $dir    = $searchResults->get( $i )->getOrientation;
     my $score  = $searchResults->get( $i )->getScore;
-    print join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, "$score\n";
+    print WU join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, "$score\n";
 }
+close WU;
 
 my $Engine2 = NCBIBlastSearchEngine->new( pathToEngine=>"/usr/local/rmblast/bin/rmblastn" );
-$Engine2->setMatrix( "/home/asmit/Matrices/simple.matrix" );
-$Engine2->setQuery( "./gator_annotation/rep" );
-$Engine2->setSubject( "./gator_annotation/allMis0.fa" );
+$Engine2->setMatrix( "./Matrices/ncbi/nt/simple.matrix" );
+$Engine2->setQuery( "repeat.fa" );
+$Engine2->setSubject( "allMis0.fa" );
 my $searchResults2 = $Engine2->search();
 
+open RM, ">tests.rmblast" or die;
 my $hits2 = $searchResults2->size();
-print "RM-Blast found $hits2 hits\n";
+print RM "RM-Blast found $hits2 hits\n";
 for ( my $i = 0 ; $i < $hits2; $i++ ) {
     my $qName  = $searchResults2->get( $i )->getQueryName;
     my $qStart = $searchResults2->get( $i )->getQueryStart;
@@ -46,6 +49,7 @@ for ( my $i = 0 ; $i < $hits2; $i++ ) {
     my $hEnd   = $searchResults2->get( $i )->getSubjEnd;
     my $dir    = $searchResults2->get( $i )->getOrientation;
     my $score  = $searchResults2->get( $i )->getScore;
-    print join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, "$score\n";
+    print RM join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, "$score\n";
 }
+close RM;
 

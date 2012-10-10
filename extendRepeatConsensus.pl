@@ -301,6 +301,8 @@ sub extendRepeat {
     my $maxn        = $conf{'maxn'};
     my $size        = $conf{'size'};
     my $win         = $conf{'win'};
+    my $no3p        = $conf{'no3p'};
+    my $no5p        = $conf{'no5p'};
     my $ext         = 'Z' x $size;
     my $hits;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
@@ -324,21 +326,27 @@ sub extendRepeat {
         my $hEnd   = $searchResults->get( $i )->getSubjEnd;
         my $dir    = $searchResults->get( $i )->getOrientation;
         my $score  = $searchResults->get( $i )->getScore;
+        my $qLen   = $qEnd - $qStart;
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
         next if ($score < $minscore);
         next if ($hLen  < $minlen);
-        warn "testing no5p: $conf{'no5p'}, no3p: $conf{'no3p'}\n" if (defined $verbose); 
-        if ($conf{'no5p'} != 0) {
-            if ($qStart > $win and $hStart < $size) {
-                $seq = substr($genome{$hName}, $hStart - $qStart - 1, $hLen + $size);
-                $seq = revcomp($seq) if ($dir eq 'C' or $dir eq '-' or $dir eq 'R');    
-                push @left_seqs, $seq if (($#left_seqs + 1 ) <= $numseqs);
+
+        if ($no5p == 0) {
+            if ($qStart <= $win) {
+                if ($dir eq 'C' or $dir eq '-' or $dir eq 'R') {
+            
+                }
+                else {
+                    $seq = substr($genome{$hName}, $hStart - $qStart - 1, $hLen + $size);
+                    $seq = revcomp($seq) if     
+                    push @left_seqs, $seq if (($#left_seqs + 1 ) <= $numseqs);
+                }
             }
         }
         
-        if ($conf{'no3p'} != 0) {
-            if ($qEnd < ($hLen - $win) and ($hEnd + $size) <= $genome_len{$hName}) {
+        if ($no3p == 0) {
+            if ($qEnd > ($qLen - $win) and ($hEnd + $size) <= $genome_len{$hName}) {
                 $seq = substr($genome{$hName}, $hEnd + ($hLen - $qEnd) - 1, $hLen + $size);
                 $seq = revcomp($seq) if ($dir eq 'C' or $dir eq '-' or $dir eq 'R');    
                 push @right_seqs, $seq if (($#right_seqs + 1 ) <= $numseqs);
