@@ -8,8 +8,6 @@ use WUBlastSearchEngine;
 use CrossmatchSearchEngine;
 use SearchEngineI;
 use SearchResultCollection;
-use Data::Dumper;
-use ArrayListIterator;
 
 my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn" );
 $Engine->setMatrix( "/home/asmit/Matrices/nt/wumatrix" );
@@ -38,7 +36,7 @@ $Engine2->setSubject( "./gator_annotation/allMis0.fa" );
 my $searchResults2 = $Engine2->search();
 
 my $hits2 = $searchResults2->size();
-print "WU-Blast found $hits2 hits\n";
+print "RM-Blast found $hits2 hits\n";
 for ( my $i = 0 ; $i < $hits2; $i++ ) {
     my $qName  = $searchResults2->get( $i )->getQueryName;
     my $qStart = $searchResults2->get( $i )->getQueryStart;

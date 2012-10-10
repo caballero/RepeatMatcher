@@ -16,20 +16,22 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -i --in         Consensus Fasta
     -g --genome     Genome Fasta
     -o --out        Output fasta
-    -s --size       Step size per iteration                           [8]
-    -x --engine     Alignment engine (blast, wublast)                 [wublast]
-    -e --evalue     Minimal evalue for matches                        [1e-20]
-    -n --numseqs    Maximal number of sequences to try extending      [500]
-    -m --minseqs    Minimal number of sequences to continue extending [3]
-    -l --minlen     Minimal length of sequences                       [100]
-    -d --div        Divergence level (14,18,20,25)                    [14]
-    -x --maxn       Maximal number of no-bases in extension           [2]
-    -w --win        Extension window                                  [100]
-    --minscore      Cross_match minscore                              [200]
-    --minmatch      Cross_match minmatch                              [7]
+    -s --size       Step size per iteration                           [       8]
+    -e --engine     Alignment engine (rmblast, wublast)               [ wublast]
+    -x --matrix     Score matrix                                      [wumatrix]
+    -c --score      Minimal score                                     [     200]
+    -n --numseqs    Maximal number of sequences to try extending      [     500]
+    -m --minseqs    Minimal number of sequences to continue extending [       3]
+    -l --minlen     Minimal length of sequences                       [     100]
+    -d --div        Divergence level (14,18,20,25)                    [      14]
+    -z --maxn       Maximal number of no-bases in extension           [       2]
+    -w --win        Extension window                                  [     100]
+    --minscore      Cross_match minscore                              [     200]
+    --minmatch      Cross_match minmatch                              [       7]
+    -t --temp       Temporary file names                              [    temp]
+    -a --auto       Run auto mode (non-interactive)
     --no3p          Don't extend to 3'
     --no5p          Don't extend to 5'
-    -t --temp       Temporary file names                              [temp]
     
     -h --help       Print this screen and exit
     -v --verbose    Verbose mode on
@@ -70,38 +72,43 @@ use Getopt::Long;
 use Pod::Usage;
 use lib './lib';
 use NCBIBlastSearchEngine;
-use CrossmatchSearchEngine;
 use WUBlastSearchEngine;
+use SearchEngineI;
+use SearchResultCollection;
+
 
 # Default parameters
-my $help     =    undef;         # Print help
-my $verbose  =    undef;         # Verbose mode
-my $version  =    undef;         # Version call flag
-my $in       =    undef;
-my $genome   =    undef;
-my $out      =    undef;
-my $size     =        8;
-my $engine   = 'blastn';
-my $evalue   = 1 / 1e20;
-my $numseq   =      500;
-my $minseq   =        3;
-my $minlen   =      100;
-my $div      =       14;
-my $maxn     =        2;
-my $win      =      100;
-my $no3p     =    undef;
-my $no5p     =    undef;
-my $temp     =   'temp';
-my $minmatch =        7;
-my $minscore =      200;
+my $help     =     undef;         # Print help
+my $verbose  =     undef;         # Verbose mode
+my $version  =     undef;         # Version call flag
+my $in       =     undef;
+my $genome   =     undef;
+my $out      =     undef;
+my $auto     =     undef;
+my %conf     = (
+    size     =>         8,
+    engine   => 'wublast',
+    numseq   =>       500,
+    minseq   =>         3,
+    minlen   =>       100,
+    div      =>        14,
+    maxn     =>         2,
+    win      =>       100,
+    no3p     =>         0,
+    no5p     =>         0,
+    temp     =>    'temp',
+    minmatch =>         7,
+    minscore =>       200,
+    matrix   => '/home/asmit/Matrices/nt/wumatrix'
+);
 
 # Main variables
 my $our_version = 0.1;        # Script version number
 my $linup       = '/home/asmit/bin/Linup';
-my $matrix_dir  = '/home/asmit/Matrices';
 my $new         = '';
 my %genome      = ();
 my %genome_len  = ();
+my $searchResult;
 
 # Calling options
 GetOptions(
@@ -110,20 +117,19 @@ GetOptions(
     'i|in=s'            => \$in,
     'o|out=s'           => \$out,
     'g|genome=s'        => \$genome,
-    'd|divergence:i'    => \$div,
-    's|size:i'          => \$size,
-    'e|evalue:s'        => \$evalue,
-    'l|minlen:i'        => \$minlen,
-    'x|engine:s'        => \$engine,
-    't|temp:s'          => \$temp,
-    'n|numseq:i'        => \$numseq,
-    'm|minseq:i'        => \$minseq,
-    'z|maxn:i'          => \$maxn,
-    'w|win:i'           => \$win,
-    'minscore:i'        => \$minscore,
-    'minmatch:i'        => \$minmatch,
-    'no3p'              => \$no3p,
-    'no5p'              => \$no5p
+    'd|divergence:i'    => \$conf{'div'},
+    's|size:i'          => \$conf{'size'},
+    'l|minlen:i'        => \$conf{'minlen'},
+    'e|engine:s'        => \$conf{'engine'},
+    't|temp:s'          => \$conf{'temp'},
+    'n|numseq:i'        => \$conf{'numseq'},
+    'm|minseq:i'        => \$conf{'minseq'},
+    'z|maxn:i'          => \$conf{'maxn'},
+    'w|win:i'           => \$conf{'win'},
+    'minscore:i'        => \$conf{'minscore'},
+    'minmatch:i'        => \$conf{'minmatch'},
+    'no3p'              => \$conf{'no3p'},
+    'no5p'              => \$conf{'no5p'}
 ) or pod2usage(-verbose => 2);
 printVersion()           if  (defined $version);
 pod2usage(-verbose => 2) if  (defined $help);
@@ -149,6 +155,35 @@ while (1) {
     last if ($len_old == $len_new);
     $rep = $new;
     $iter++;
+    next if (defined $auto);
+    
+    print "ITER #$i\n";
+    my ($left, $right) = readBlocks("$temp.ali");
+    
+    unless (defined $no5p) {
+        print "LEFT BLOCK:\n$left\n";
+        print "PRESS ANY KEY TO CONTINUE\n";
+        $res = <>;
+    }
+    unless (defined $no3p) {
+        print "RIGHT BLOCK:\n$right\n";
+        print "PRESS ANY KEY TO CONTINUE\n";
+        $res = <>;
+    }
+    
+    print "SELECT: Stop|Continue|Modify\n";
+    $res = <>;
+    chomp $res;
+    last if ($res =~ m/^s/i);
+    next if ($res =~ m/^c/i);
+    
+    print "Changing parameters:\n";
+    foreach my $param (keys %conf) {
+        print "   $param [", $conf{$param}, "] : ";
+        $res = <>; 
+        chomp $res; 
+        $conf{$param} = $res if (defined $res);
+    }
 }
 printFasta("$lab | extended", $new, $out);
 
@@ -357,6 +392,15 @@ sub createConsensus {
     close A;
     
     return $con;
+}
+
+sub readBlocks {
+    my $file = shift;
+    local $/ = "\n\n";
+    open F, "$file" or die "cannot open $file\n";
+    my @blocks = <F>;
+    close F;
+    return $blocks[0], $blocks[-1];
 }
 
 sub checkDiv {
