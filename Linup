@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+use lib './lib';
+use MultAln ();
+use Getopt::Std;
+
+getopts('i');
+if ($#ARGV < 0) {
+    die "Usage: Linup [-i] <crossmatch file> <matrix file>\n 
+     options: -i: include old consensus in new consensus calculation\n";
+}
+
+$file = $ARGV[0];
+$matrixFile = $ARGV[1];
+
+$x = MultAln->new();
+$x->align ( $file );
+$ref = $x->splice(0, 1);
+%ref = %$ref;
+$x->sort;
+unless ($opt_i) {
+    ($consensus, $scores_r) = $x->consensus($matrixFile);
+    $x->splice(0, 0, $ref);
+}
+else {
+    $x->splice(0, 0, $ref);
+    ($consensus, $scores_r) = $x->consensus($matrixFile);
+}
+%consensus = (start => 0,
+              seqStart => 1,
+              seq => $consensus,
+              end => length($consensus) - 1,
+              name => 'consensus');
+
+$x->splice(0, 0, \%consensus);
+
+$x->Print;
+$consensus =~ s/\-//g;
+print "\n\n>$ref{name}\n";
+print "$consensus\n\n";
