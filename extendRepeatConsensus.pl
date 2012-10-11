@@ -17,21 +17,26 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -g --genome   Genome Fasta
     -o --out      Output fasta
     -s --size     Step size per iteration                           [       8]
-    -e --engine   Alignment engine (rmblast, wublast)               [ wublast]
-    -x --matrix   Score matrix                             [14p35g.matrix.4.4]
-    -c --score    Minimal score                                     [     200]
-    -n --numseqs  Maximal number of sequences to try extending      [     500]
-    -m --minseqs  Minimal number of sequences to continue extending [       3]
-    -l --minlen   Minimal length of sequences                       [     100]
-    -d --div      Divergence level (14,18,20,25)                    [      14]
     -z --maxn     Maximal number of no-bases in extension           [       2]
     -w --win      Extension window                                  [     100]
-    --minscore    Cross_match minscore                              [     200]
-    --minmatch    Cross_match minmatch                              [       7]
     -t --temp     Temporary file names                              [    temp]
     -a --auto     Run auto mode (non-interactive)
     --no3p        Don't extend to 3'
     --no5p        Don't extend to 5'
+
+    Search engine options
+    -e --engine   Alignment engine (rmblast, wublast)               [ wublast]
+    -x --matrix   Score matrix                                      [wumatrix]
+    -c --score    Minimal score                                     [     200]
+    -n --numseqs  Maximal number of sequences to try extending      [     500]
+    -m --minseqs  Minimal number of sequences to continue extending [       3]
+    -l --minlen   Minimal length of sequences                       [     100]
+    -u --evalue   Maximal e-value                                   [   1e-10]
+    
+    Cross_match options
+    -d --div      Divergence level (14,18,20,25)                    [      14]
+    --minscore    Cross_match minscore                              [     200]
+    --minmatch    Cross_match minmatch                              [       7]
     
     -h --help     Print this screen and exit
     -v --verbose  Verbose mode on
@@ -78,28 +83,28 @@ use SearchResultCollection;
 
 
 # Default parameters
-my $help     =     undef;         # Print help
-my $verbose  =     undef;         # Verbose mode
-my $version  =     undef;         # Version call flag
-my $in       =     undef;
-my $genome   =     undef;
-my $out      =     undef;
-my $auto     =     undef;
-my %conf     = (
-    size     => 8,
-    engine   => 'wublast',
-    numseq   => 500,
-    minseq   => 3,
-    minlen   => 100,
-    div      => 14,
-    maxn     => 2,
-    win      => 100,
-    no3p     => 0,
-    no5p     => 0,
-    temp     => 'temp',
-    minmatch => 7,
-    minscore => 200,
-    matrix   => 'wumatrix');
+my $help     = undef;
+my $verbose  = undef;
+my $version  = undef;
+my $in       = undef;
+my $genome   = undef;
+my $out      = undef;
+my $auto     = undef;
+my %conf     = ('size'     => 8,
+                'engine'   => 'wublast',
+                'numseq'   => 500,
+                'minseq'   => 3,
+                'minlen'   => 100,
+                'div'      => 14,
+                'maxn'     => 2,
+                'win'      => 100,
+                'no3p'     => 0,
+                'no5p'     => 0,
+                'temp'     => 'temp',
+                'minmatch' => 7,
+                'minscore' => 200,
+                'evalue'   => 1 / 1e10,
+                'matrix'   => 'wumatrix');
 
 # Main variables
 my $our_version = 0.1;
@@ -304,14 +309,17 @@ sub extendRepeat {
     my $win         = $conf{'win'};
     my $no3p        = $conf{'no3p'};
     my $no5p        = $conf{'no5p'};
+    my $evalue      = $conf{'evalue'};
     my $ext         = 'Z' x $size;
     my $hits;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     close F;
+    open  O, ">$temp.out" or die "cannot write $temp.fa\n";
 
     $Engine->setQuery("$temp.fa");
     $Engine->setSubject($genome);
+    $Engine->setAdditionalParameters("-e $evalue");
     ($status, $searchResults) = $Engine->search();
     die "Search returned an error: $status\n" if ($status > 0);
     
@@ -333,6 +341,7 @@ sub extendRepeat {
         next if ($score < $minscore);
         next if ($hLen  < $minlen);
 
+        print O  $searchResults->get( $i )->toString();
         if ($no5p == 0) {
             if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
