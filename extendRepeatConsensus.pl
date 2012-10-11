@@ -333,23 +333,26 @@ sub extendRepeat {
         next if ($hLen  < $minlen);
 
         if ($no5p == 0) {
-            if ($qStart <= $win) {
-                if ($dir eq 'C' or $dir eq '-' or $dir eq 'R') {
-            
+            if ($qStart <= $win and ($#left_seqs + 1) <= $numseqs) {
+                if ($dir eq 'C') {
+                    $seq = revcomp(substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qStart) + $size - 1));
                 }
                 else {
-                    $seq = substr($genome{$hName}, $hStart - $qStart - 1, $hLen + $size);
-                    $seq = revcomp($seq) if     
-                    push @left_seqs, $seq if (($#left_seqs + 1 ) <= $numseqs);
+                    $seq = substr($genome{$hName}, $hStart - $qStart - $size - 1, $hLen + $qStart + $size -1);
                 }
+                push @left_seqs, $seq;
             }
         }
         
         if ($no3p == 0) {
-            if ($qEnd > ($qLen - $win) and ($hEnd + $size) <= $genome_len{$hName}) {
-                $seq = substr($genome{$hName}, $hEnd + ($hLen - $qEnd) - 1, $hLen + $size);
-                $seq = revcomp($seq) if ($dir eq 'C' or $dir eq '-' or $dir eq 'R');    
-                push @right_seqs, $seq if (($#right_seqs + 1 ) <= $numseqs);
+            if ($qEnd > ($qLen - $win) and ($hEnd + $size) <= $genome_len{$hName} and ($#right_seqs + 1) <= $numseqs) {
+                if ($dir eq 'C') {
+                    $seq = revcomp(substr($genome{$hName}, $hStart - $qStart - $size - 1, $hLen + $qStart + $size - 1));                    
+                }
+                else {
+                    $seq = substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qEnd) + $size - 1);
+                }
+                push @right_seqs, $seq;
             }
         }
     }
