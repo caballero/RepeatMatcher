@@ -444,7 +444,7 @@ sub readBlocks {
     open F, "$file" or die "cannot open $file\n";
     my @blocks = <F>;
     close F;
-    return $blocks[0], $blocks[-2];
+    return $blocks[0], $blocks[-1];
 }
 
 sub checkDiv {
