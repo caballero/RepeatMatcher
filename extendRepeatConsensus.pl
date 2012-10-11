@@ -399,7 +399,7 @@ sub createConsensus {
     
     system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out 2> /dev/null";
     
-    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
+    system "$linup -i $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
     
     my $con = '';
     open A, "$temp.ali" or die "cannot open file $temp.ali\n";
@@ -422,7 +422,7 @@ sub readBlocks {
     open F, "$file" or die "cannot open $file\n";
     my @blocks = <F>;
     close F;
-    return $blocks[0], $blocks[-2];
+    return $blocks[0], $blocks[-3];
 }
 
 sub checkDiv {

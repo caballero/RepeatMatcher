@@ -35,6 +35,6 @@ else {
 $x->splice(0, 0, \%consensus);
 
 $x->Print;
-$consensus =~ s/\-//g;
-print "\n\n>$ref{name}\n";
-print "$consensus\n\n";
+#$consensus =~ s/\-//g;
+#print "\n\n>$ref{name}\n";
+#print "$consensus\n\n";
