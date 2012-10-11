@@ -296,8 +296,8 @@ sub extendRepeat {
     my $matrix      = $conf{'matrix'};
     my $minlen      = $conf{'minlen'};
     my $minscore    = $conf{'minscore'};
-    my $minseqs     = $conf{'minseqs'};
-    my $numseqs     = $conf{'numseqs'};
+    my $minseq      = $conf{'minseq'};
+    my $numseq      = $conf{'numseq'};
     my $maxn        = $conf{'maxn'};
     my $size        = $conf{'size'};
     my $win         = $conf{'win'};
@@ -333,7 +333,7 @@ sub extendRepeat {
         next if ($hLen  < $minlen);
 
         if ($no5p == 0) {
-            if ($qStart <= $win and ($#left_seqs + 1) <= $numseqs) {
+            if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
                     $seq = revcomp(substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qStart) + $size - 1));
                 }
@@ -345,7 +345,7 @@ sub extendRepeat {
         }
         
         if ($no3p == 0) {
-            if ($qEnd > ($qLen - $win) and ($hEnd + $size) <= $genome_len{$hName} and ($#right_seqs + 1) <= $numseqs) {
+            if ($qEnd > ($qLen - $win) and ($hEnd + $size) <= $genome_len{$hName} and ($#right_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
                     $seq = revcomp(substr($genome{$hName}, $hStart - $qStart - $size - 1, $hLen + $qStart + $size - 1));                    
                 }
