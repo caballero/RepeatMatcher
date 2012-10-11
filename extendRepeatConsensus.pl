@@ -192,12 +192,12 @@ while (1) {
     
     if ($conf{'no5p'} == 0) {
         print "LEFT BLOCK:\n$left\n";
-        print "PRESS ANY KEY TO CONTINUE\n";
+        print "PRESS [ENTER] TO CONTINUE\n";
         $res = <>;
     }
     if ($conf{'no3p'} == 0) {
         print "RIGHT BLOCK:\n$right\n";
-        print "PRESS ANY KEY TO CONTINUE\n";
+        print "PRESS [ENTER] TO CONTINUE\n";
         $res = <>;
     }
     
@@ -444,7 +444,7 @@ sub readBlocks {
     open F, "$file" or die "cannot open $file\n";
     my @blocks = <F>;
     close F;
-    return $blocks[0], $blocks[-3];
+    return $blocks[0], $blocks[-2];
 }
 
 sub checkDiv {
