@@ -18,7 +18,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -o --out      Output fasta
     -s --size     Step size per iteration                           [       8]
     -z --maxn     Maximal number of no-bases in extension           [       2]
-    -w --win      Extension window                                  [     100]
+    -w --win      Extension window                                  [      50]
     -t --temp     Temporary file names                              [    temp]
     -a --auto     Run auto mode (non-interactive)
     --no3p        Don't extend to 3'
@@ -28,7 +28,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -e --engine   Alignment engine (rmblast, wublast)               [ wublast]
     -x --matrix   Score matrix                                      [wumatrix]
     -c --score    Minimal score                                     [     200]
-    -n --numseqs  Maximal number of sequences to try extending      [     500]
+    -n --numseqs  Maximal number of sequences to try extending      [     200]
     -m --minseqs  Minimal number of sequences to continue extending [       3]
     -l --minlen   Minimal length of sequences                       [     100]
     -u --evalue   Maximal e-value                                   [   1e-10]
@@ -92,18 +92,19 @@ my $out      = undef;
 my $auto     = undef;
 my %conf     = ('size'     => 8,
                 'engine'   => 'wublast',
-                'numseq'   => 500,
+                'numseq'   => 200,
                 'minseq'   => 3,
                 'minlen'   => 100,
                 'div'      => 14,
                 'maxn'     => 2,
-                'win'      => 100,
+                'win'      => 50,
                 'no3p'     => 0,
                 'no5p'     => 0,
                 'temp'     => 'temp',
                 'minmatch' => 7,
                 'minscore' => 200,
                 'evalue'   => 1 / 1e10,
+                'proc'     => 4,
                 'matrix'   => 'wumatrix');
 
 # Main variables
@@ -118,7 +119,7 @@ my $cross_match = '/usr/local/bin/cross_match';
 my $new         = '';
 my %genome      = ();
 my %genome_len  = ();
-my ($searchResults, $status, $Engine, $matrix);
+my ($searchResults, $status, $Engine, $matrix, $proc, $evalue);
 
 # Calling options
 GetOptions(
@@ -140,7 +141,8 @@ GetOptions(
     'minmatch:i'        => \$conf{'minmatch'},
     'x|matrix:s'        => \$conf{'matrix'},
     'no3p'              => \$conf{'no3p'},
-    'no5p'              => \$conf{'no5p'}
+    'no5p'              => \$conf{'no5p'},
+    'p|proc:i'          => \$conf{'proc'}
 ) or pod2usage(-verbose => 2);
 printVersion()           if  (defined $version);
 pod2usage(-verbose => 2) if  (defined $help);
@@ -149,14 +151,18 @@ pod2usage(-verbose => 2) if !(defined $out);
 pod2usage(-verbose => 2) if !(defined $genome);
 
 $matrix = $conf{'matrix'};
+$proc   = $conf{'proc'};
+$evalue = $conf{'evalue'};
 
 if ($conf{'engine'} eq 'wublast') {
     $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast, DEBUG => 2);
     $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
+    $Engine->setAdditionalParameters("-cpus $proc -E $evalue");
 }
 elsif ($conf{'engine'} eq 'rmblast') {
     $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast, DEBUG => 2);
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
+    $Engine->setAdditionalParameters("-evalue $evalue -num_threads $proc");
 }
 else { die "search engine not supported: $conf{'engine'}\n"; }
 
@@ -203,6 +209,7 @@ while (1) {
     
     print "Changing parameters:\n";
     foreach my $param (keys %conf) {
+        next if ($param =~ m/proc|matrix|engine|evalue/);
         print "   $param [", $conf{$param}, "] : ";
         $res = <>; 
         chomp $res; 
@@ -292,6 +299,7 @@ sub loadGenome {
 
 sub extendRepeat {
     my ($rep)       = @_;
+    my @all_seqs    = ();
     my @left_seqs   = ();
     my @right_seqs  = ();
     my $left        = '';
@@ -319,7 +327,6 @@ sub extendRepeat {
 
     $Engine->setQuery("$temp.fa");
     $Engine->setSubject($genome);
-    $Engine->setAdditionalParameters("-e $evalue");
     ($status, $searchResults) = $Engine->search();
     die "Search returned an error: $status\n" if ($status > 0);
     
@@ -341,7 +348,7 @@ sub extendRepeat {
         next if ($score < $minscore);
         next if ($hLen  < $minlen);
 
-        print O  $searchResults->get( $i )->toString();
+        print O  $searchResults->get( $i )->toStringFormatted(SearchResult::NoAlign);
         if ($no5p == 0) {
             if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
@@ -366,20 +373,26 @@ sub extendRepeat {
             }
         }
     }
+    close O;
     
     my $nleft  = scalar @left_seqs;
     my $nright = scalar @right_seqs;
     
     warn "$nleft in left side, $nright in right side\n" if (defined $verbose); 
-      
-    if (($#left_seqs + 1)  >= $minseq) {
-        $cons  = createConsensus("$ext$rep", @left_seqs);
+    
+    push @all_seqs, @left_seqs;
+    push @all_seqs, @right_seqs;
+    my $ext_rep  = $rep;
+    $ext_rep = "$ext$ext_rep" if (($#left_seqs  + 1)  >= $minseq);
+    $ext_rep = "$ext_rep$ext" if (($#right_seqs + 1)  >= $minseq);
+    $cons  = createConsensus("$ext_rep", @all_seqs);
+    
+    if ($ext_rep =~ m/^Z/) {
         $left  = substr($cons, 0, $size);
         $null  = $left =~ tr/N/N/;
         $left  = '' if ($null >= $maxn);
     }
-    if (($#right_seqs + 1) >= $minseq) {
-        $cons  = createConsensus("$rep$ext", @right_seqs);
+    if ($ext_rep =~ m/Z$/) {
         $right = substr($cons, (length $cons) - $size, $size);
         $null  = $right =~ tr/N/N/;
         $right = '' if ($null >= $maxn);
