@@ -362,13 +362,13 @@ sub extendRepeat {
     
     warn "$nleft in left side, $nright in right side\n" if (defined $verbose); 
       
-    if (($#left_seqs + 1)  >= $minseqs) {
+    if (($#left_seqs + 1)  >= $minseq) {
         $cons  = createConsensus("$ext$rep", @left_seqs);
         $left  = substr($cons, 0, $size);
         $null  = $left =~ tr/N/N/;
         $left  = '' if ($null >= $maxn);
     }
-    if (($#right_seqs + 1) >= $minseqs) {
+    if (($#right_seqs + 1) >= $minseq) {
         $cons  = createConsensus("$rep$ext", @right_seqs);
         $right = substr($cons, (length $cons) - $size, $size);
         $null  = $right =~ tr/N/N/;
