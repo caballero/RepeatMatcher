@@ -367,6 +367,16 @@ sub extendRepeat {
         my $seq    = '';
         next if ($score < $minscore);
         next if ($hLen  < $minlen);
+        
+        if ($no5p == 0 and $no3p == 0) {
+            last if ( ($#left_seqs + $#right_seqs + 2) >= (2 * $numseq));
+        }
+        elsif ($no5p == 0) {
+            last if ( ($#left_seqs + 1) >= $numseq);
+        }
+        elsif ($no3p == 0) {
+            last if ( ($#right_seqs + 1) >= $numseq);
+        }
 
         print O  $searchResults->get( $i )->toStringFormatted(SearchResult::NoAlign);
         if ($no5p == 0) {
