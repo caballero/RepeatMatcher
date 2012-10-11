@@ -109,6 +109,7 @@ my %conf     = ('size'     => 8,
 
 # Main variables
 my $our_version = 0.1;
+my $pager = $ENV{PAGER} || 'less';
 my $editor      = 'vi'; # or emacs, nano, pico, ...
 my $linup       = './Linup';
 my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
@@ -192,13 +193,17 @@ while (1) {
     my ($left, $right) = readBlocks("$file.ali");
     
     if ($conf{'no5p'} == 0) {
-        system ("echo LEFT BLOCK:\n$left | more");
+        open(my $less, '|-', $pager, '-e') || die "Cannot pipe to $pager: $!";
+        print $less $left;
+        close($less);
         #print "LEFT BLOCK:\n$left\n";
         #print "PRESS [ENTER] TO CONTINUE\n";
         #$res = <>;
     }
     if ($conf{'no3p'} == 0) {
-        system ("echo LEFT BLOCK:\n$left | more");
+        open(my $less, '|-', $pager, '-e') || die "Cannot pipe to $pager: $!";
+        print $less $right;
+        close($less);
         #print "RIGHT BLOCK:\n$right\n";
         #print "PRESS [ENTER] TO CONTINUE\n";
         #$res = <>;
