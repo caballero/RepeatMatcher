@@ -194,6 +194,7 @@ while (1) {
     
     if ($conf{'no5p'} == 0) {
         open(my $less, '|-', $pager, '-e') || die "Cannot pipe to $pager: $!";
+        print $less "LEFT SIDE>\n";
         print $less $left;
         close($less);
         #print "LEFT BLOCK:\n$left\n";
@@ -202,6 +203,7 @@ while (1) {
     }
     if ($conf{'no3p'} == 0) {
         open(my $less, '|-', $pager, '-e') || die "Cannot pipe to $pager: $!";
+        print $less "RIGHT SIDE>\n";
         print $less $right;
         close($less);
         #print "RIGHT BLOCK:\n$right\n";
