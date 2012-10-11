@@ -8,7 +8,7 @@ use WUBlastSearchEngine;
 use SearchEngineI;
 use SearchResultCollection;
 
-my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn" );
+my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn", DEBUG => 1 );
 $Engine->setMatrix( "./Matrices/wublast/nt/wumatrix" );
 $Engine->setQuery( "repeat.fa" );
 $Engine->setSubject( "allMis0.fa" );
@@ -17,6 +17,8 @@ my $searchResults = $Engine->search();
 open WU, ">tests.wublast" or die;
 my $hits = $searchResults->size();
 print WU "WU-Blast found $hits hits\n";
+
+exit 1;
 for ( my $i = 0 ; $i < $hits; $i++ ) {
     my $qName  = $searchResults->get( $i )->getQueryName;
     my $qStart = $searchResults->get( $i )->getQueryStart;
@@ -30,7 +32,7 @@ for ( my $i = 0 ; $i < $hits; $i++ ) {
 }
 close WU;
 
-my $Engine2 = NCBIBlastSearchEngine->new( pathToEngine=>"/usr/local/rmblast/bin/rmblastn" );
+my $Engine2 = NCBIBlastSearchEngine->new( pathToEngine=>"/usr/local/rmblast/bin/rmblastn", DEBUG => 1);
 $Engine2->setMatrix( "./Matrices/ncbi/nt/simple.matrix" );
 $Engine2->setQuery( "repeat.fa" );
 $Engine2->setSubject( "allMis0.fa" );
