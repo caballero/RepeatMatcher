@@ -160,7 +160,7 @@ $evalue = $conf{'evalue'};
 if ($conf{'engine'} eq 'wublast') {
     $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast, DEBUG => 2);
     $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
-    $Engine->setAdditionalParameters("-cpus $proc -E $evalue -W 8 -Q 25 -R 5 -hspsepqmax 10000 -hspsepsmax 10000 -B 10000 -V 10000");
+    $Engine->setAdditionalParameters("-cpus $proc -E $evalue -W 8 -Q 25 -R 5 -B 10000 -V 10000");
 }
 elsif ($conf{'engine'} eq 'rmblast') {
     $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast, DEBUG => 2);
