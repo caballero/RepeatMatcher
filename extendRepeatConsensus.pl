@@ -179,17 +179,17 @@ loadGenome($genome);
 ####        M A I N            ####
 ###################################
 while (1) {
+    $iter++;
+    print "ITER #$iter\n";
     warn "extending repeat\n" if (defined $verbose);
     $new = extendRepeat($rep);
     my $len_old = length $rep;
     my $len_new = length $new;
     last if ($len_old == $len_new);
     $rep = $new;
-    $iter++;
     next if (defined $auto);
     
     my $res;
-    print "ITER #$iter\n";
     my $file = $conf{'temp'};
     my ($left, $right) = readBlocks("$file.ali");
     
