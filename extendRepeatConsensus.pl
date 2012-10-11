@@ -176,14 +176,15 @@ while (1) {
     
     my $res;
     print "ITER #$iter\n";
-    my ($left, $right) = readBlocks($conf{'temp'}.'.ali');
+    my $file = $conf{'temp'};
+    my ($left, $right) = readBlocks("$file.ali");
     
-    if ($conf{'no5p'} != 0) {
+    if ($conf{'no5p'} == 0) {
         print "LEFT BLOCK:\n$left\n";
         print "PRESS ANY KEY TO CONTINUE\n";
         $res = <>;
     }
-    if ($conf{'no3p'} != 0) {
+    if ($conf{'no3p'} == 0) {
         print "RIGHT BLOCK:\n$right\n";
         print "PRESS ANY KEY TO CONTINUE\n";
         $res = <>;
@@ -396,9 +397,9 @@ sub createConsensus {
     }
     close F;
     
-    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out";
+    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out 2> /dev/null";
     
-    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali";
+    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
     
     my $con = '';
     open A, "$temp.ali" or die "cannot open file $temp.ali\n";
@@ -421,7 +422,7 @@ sub readBlocks {
     open F, "$file" or die "cannot open $file\n";
     my @blocks = <F>;
     close F;
-    return $blocks[0], $blocks[-1];
+    return $blocks[0], $blocks[-2];
 }
 
 sub checkDiv {
