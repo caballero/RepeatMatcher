@@ -130,6 +130,7 @@ GetOptions(
     'i|in=s'            => \$in,
     'o|out=s'           => \$out,
     'g|genome=s'        => \$genome,
+    'a|auto'            => \$auto,
     'd|divergence:i'    => \$conf{'div'},
     's|size:i'          => \$conf{'size'},
     'l|minlen:i'        => \$conf{'minlen'},
