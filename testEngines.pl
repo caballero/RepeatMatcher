@@ -8,7 +8,7 @@ use WUBlastSearchEngine;
 use SearchEngineI;
 use SearchResultCollection;
 
-my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn", DEBUG => 1 );
+my $Engine = WUBlastSearchEngine->new( pathToEngine=>"/usr/local/wublast/blastn");
 $Engine->setMatrix( "./Matrices/wublast/nt/wumatrix" );
 $Engine->setQuery( "repeat.fa" );
 $Engine->setSubject( "allMis0.fa" );
