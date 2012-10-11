@@ -109,6 +109,7 @@ my %conf     = ('size'     => 8,
 
 # Main variables
 my $our_version = 0.1;
+my $editor      = 'vi'; # or emacs, nano, pico, ...
 my $linup       = './Linup';
 my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
 my $makeblastdb = '/usr/local/rmblast/bin/makeblastdb';
@@ -191,29 +192,40 @@ while (1) {
     my ($left, $right) = readBlocks("$file.ali");
     
     if ($conf{'no5p'} == 0) {
-        print "LEFT BLOCK:\n$left\n";
-        print "PRESS [ENTER] TO CONTINUE\n";
-        $res = <>;
+        system ("echo LEFT BLOCK:\n$left | more");
+        #print "LEFT BLOCK:\n$left\n";
+        #print "PRESS [ENTER] TO CONTINUE\n";
+        #$res = <>;
     }
     if ($conf{'no3p'} == 0) {
-        print "RIGHT BLOCK:\n$right\n";
-        print "PRESS [ENTER] TO CONTINUE\n";
-        $res = <>;
+        system ("echo LEFT BLOCK:\n$left | more");
+        #print "RIGHT BLOCK:\n$right\n";
+        #print "PRESS [ENTER] TO CONTINUE\n";
+        #$res = <>;
     }
     
-    print "SELECT: Stop|Continue|Modify\n";
+    print "SELECT: [Stop|Continue|Modify|Edit] ";
     $res = <>;
     chomp $res;
     last if ($res =~ m/^s/i);
     next if ($res =~ m/^c/i);
     
-    print "Changing parameters:\n";
-    foreach my $param (keys %conf) {
-        next if ($param =~ m/proc|matrix|engine|evalue/);
-        print "   $param [", $conf{$param}, "] : ";
-        $res = <>; 
-        chomp $res; 
-        $conf{$param} = $res if (defined $res);
+    if ($res =~ m/m/i) {
+        print "Changing parameters:\n";
+        foreach my $param (keys %conf) {
+            next if ($param =~ m/proc|matrix|engine|evalue/);
+            print "   $param [", $conf{$param}, "] : ";
+            $res = <>; 
+            chomp $res; 
+            $conf{$param} = $res if ($res =~ m/\w/);
+        }
+    }
+    
+    if ($res =~ m/e/i) {
+        my $file = $conf{'temp'} . ".edit";
+        printFasta("$lab\n", $rep, $file);
+        system ("$editor $file");
+        ($lab, $rep) = readFasta($file);
     }
 }
 printFasta("$lab | extended", $new, $out);
