@@ -176,7 +176,7 @@ while (1) {
     
     my $res;
     print "ITER #$iter\n";
-    my ($left, $right) = readBlocks($conf{'temp'}.'ali');
+    my ($left, $right) = readBlocks($conf{'temp'}.'.ali');
     
     if ($conf{'no5p'} != 0) {
         print "LEFT BLOCK:\n$left\n";
@@ -396,9 +396,9 @@ sub createConsensus {
     }
     close F;
     
-    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out 2> /dev/null";
+    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out";
     
-    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
+    system "$linup $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali";
     
     my $con = '';
     open A, "$temp.ali" or die "cannot open file $temp.ali\n";
