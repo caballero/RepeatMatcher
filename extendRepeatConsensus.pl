@@ -105,6 +105,7 @@ my %conf     = ('size'     => 8,
                 'minscore' => 200,
                 'evalue'   => 1 / 1e10,
                 'proc'     => 4,
+                'search'   => 1,
                 'matrix'   => 'wumatrix');
 
 # Main variables
@@ -160,12 +161,10 @@ $evalue = $conf{'evalue'};
 if ($conf{'engine'} eq 'wublast') {
     $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast, DEBUG => 1);
     $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
-    #$Engine->setAdditionalParameters("-cpus $proc -E $evalue -W 8 -Q 25 -R 5 -B 10000 -V 10000");
 }
 elsif ($conf{'engine'} eq 'rmblast') {
     $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast, DEBUG => 1);
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
-    #$Engine->setAdditionalParameters("-evalue $evalue -num_threads $proc -max_target_seqs 10000");
 }
 else { die "search engine not supported: $conf{'engine'}\n"; }
 
@@ -337,7 +336,7 @@ sub extendRepeat {
     my $win         = $conf{'win'};
     my $no3p        = $conf{'no3p'};
     my $no5p        = $conf{'no5p'};
-    my $evalue      = $conf{'evalue'};
+    my $maxe        = $conf{'evalue'};
     my $ext         = 'Z' x $size;
     my $hits;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
@@ -362,11 +361,13 @@ sub extendRepeat {
         my $hEnd   = $searchResults->get( $i )->getSubjEnd;
         my $dir    = $searchResults->get( $i )->getOrientation;
         my $score  = $searchResults->get( $i )->getScore;
+        my $evalue = $searchResults->get( $i )->getPValue;
         my $qLen   = $qEnd - $qStart;
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
-        next if ($score < $minscore);
-        next if ($hLen  < $minlen);
+        next if ($score  < $minscore);
+        next if ($evalue < $maxe);
+        next if ($hLen   < $minlen);
         
         if ($no5p == 0 and $no3p == 0) {
             last if ( ($#left_seqs + $#right_seqs + 2) >= (2 * $numseq));
@@ -378,7 +379,8 @@ sub extendRepeat {
             last if ( ($#right_seqs + 1) >= $numseq);
         }
 
-        print O  $searchResults->get( $i )->toStringFormatted(SearchResult::NoAlign);
+        print O  join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, $evalue, "$score\n";
+        
         if ($no5p == 0) {
             if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
@@ -404,6 +406,108 @@ sub extendRepeat {
         }
     }
     close O;
+    
+    my $nleft  = scalar @left_seqs;
+    my $nright = scalar @right_seqs;
+    
+    warn "$nleft in left side, $nright in right side\n" if (defined $verbose); 
+    
+    push @all_seqs, @left_seqs;
+    push @all_seqs, @right_seqs;
+    my $ext_rep  = $rep;
+    $ext_rep = "$ext$ext_rep" if (($#left_seqs  + 1)  >= $minseq);
+    $ext_rep = "$ext_rep$ext" if (($#right_seqs + 1)  >= $minseq);
+    $cons  = createConsensus("$ext_rep", @all_seqs);
+    
+    if ($ext_rep =~ m/^Z/) {
+        $left  = substr($cons, 0, $size);
+        $null  = $left =~ tr/N/N/;
+        $left  = '' if ($null >= $maxn);
+    }
+    if ($ext_rep =~ m/Z$/) {
+        $right = substr($cons, (length $cons) - $size, $size);
+        $null  = $right =~ tr/N/N/;
+        $right = '' if ($null >= $maxn);
+    }
+    
+    warn "extensions: left=$left, right=$right\n" if (defined $verbose);
+    $conf{'search'} = 0;
+    return "$left$rep$right";
+}
+
+sub extendRepeatNoSearch {
+    my ($rep, $searchFile, $iter) = @_;
+    my @all_seqs    = ();
+    my @left_seqs   = ();
+    my @right_seqs  = ();
+    my $left        = '';
+    my $right       = '';
+    my $cons        = '';
+    my $null        = '';
+    my $temp        = $conf{'temp'};
+    my $matrix      = $conf{'matrix'};
+    my $minlen      = $conf{'minlen'};
+    my $minscore    = $conf{'minscore'};
+    my $minseq      = $conf{'minseq'};
+    my $numseq      = $conf{'numseq'};
+    my $maxn        = $conf{'maxn'};
+    my $size        = $conf{'size'};
+    my $win         = $conf{'win'};
+    my $no3p        = $conf{'no3p'};
+    my $no5p        = $conf{'no5p'};
+    my $maxe        = $conf{'evalue'};
+    my $ext         = 'Z' x $size;
+    my $hits;
+    open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
+    print F  ">repeat\n$rep\n";
+    close F;
+    open S, "$searchFile" or die "cannot read $searchFile\n";
+
+    while (<S>) {
+        chomp;
+        my ($qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, $evalue, $score) = split (/\t/, $_);
+        my $qLen   = $qEnd - $qStart;
+        my $hLen   = $hEnd - $hStart;
+        my $seq    = '';
+        next if ($score  < $minscore);
+        next if ($evalue < $maxe);
+        next if ($hLen   < $minlen);
+        
+        if ($no5p == 0 and $no3p == 0) {
+            last if ( ($#left_seqs + $#right_seqs + 2) >= (2 * $numseq));
+        }
+        elsif ($no5p == 0) {
+            last if ( ($#left_seqs + 1) >= $numseq);
+        }
+        elsif ($no3p == 0) {
+            last if ( ($#right_seqs + 1) >= $numseq);
+        }
+
+        if ($no5p == 0) {
+            if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
+                if ($dir eq 'C') {
+                    $seq = revcomp(substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qStart) + ($size * $iter) - 1));
+                }
+                else {
+                    $seq = substr($genome{$hName}, $hStart - $qStart - ($size * $iter) - 1, $hLen + $qStart + ($size * $iter) -1);
+                }
+                push @left_seqs, $seq;
+            }
+        }
+        
+        if ($no3p == 0) {
+            if ($qEnd > ($qLen - $win) and ($hEnd + ($size * $iter)) <= $genome_len{$hName} and ($#right_seqs + 1) <= $numseq) {
+                if ($dir eq 'C') {
+                    $seq = revcomp(substr($genome{$hName}, $hStart - $qStart - ($size * $iter) - 1, $hLen + $qStart + ($size * $iter) - 1));                    
+                }
+                else {
+                    $seq = substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qEnd) + ($size * $iter) - 1);
+                }
+                push @right_seqs, $seq;
+            }
+        }
+    }
+    close S;
     
     my $nleft  = scalar @left_seqs;
     my $nright = scalar @right_seqs;

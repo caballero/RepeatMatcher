@@ -792,6 +792,7 @@ sub parseOutput {
   my $qryLength    = 0;
   my $sbjLength    = 0;
   my $matrix;
+  my $evalue       = 0;
 
   my $resultColl = SearchResultCollection->new();
 
@@ -921,7 +922,8 @@ sub parseOutput {
                                      pctInsert      => $percIns,
                                      pctDelete      => $percDel,
                                      matrixName     => $matrix,
-                                     score          => $score
+                                     score          => $score,
+                                     PValue         => $evalue
         );
 
         if ( defined $callbackFunc ) {
@@ -931,6 +933,7 @@ sub parseOutput {
           $resultColl->add( $result );
         }
 
+        $evalue       = "";
         $score        = "";
         $sbjSeq       = "";
         $qrySeq       = "";
@@ -1029,6 +1032,13 @@ sub parseOutput {
       $score = $1;
     }
 
+    #
+    # Evalue
+    #
+    if ( /Expect = (\d+)/ ) {
+        $evalue = $1;
+    }
+    
     #
     # Hit description line
     #
