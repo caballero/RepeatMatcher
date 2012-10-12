@@ -181,7 +181,13 @@ while (1) {
     $iter++;
     print "ITER #$iter\n";
     warn "extending repeat\n" if (defined $verbose);
-    $new = extendRepeat($rep);
+    if ($conf{'search'} == 1) {
+        $new = extendRepeat($rep);
+    }
+    else {
+        $new = extendRepeatNoSearch($rep, $iter);
+    }
+    
     my $len_old = length $rep;
     my $len_new = length $new;
     last if ($len_old == $len_new);
@@ -197,18 +203,12 @@ while (1) {
         print $less "LEFT SIDE>\n";
         print $less $left;
         close($less);
-        #print "LEFT BLOCK:\n$left\n";
-        #print "PRESS [ENTER] TO CONTINUE\n";
-        #$res = <>;
     }
     if ($conf{'no3p'} == 0) {
         open(my $less, '|-', $pager, '-e') || die "Cannot pipe to $pager: $!";
         print $less "RIGHT SIDE>\n";
         print $less $right;
         close($less);
-        #print "RIGHT BLOCK:\n$right\n";
-        #print "PRESS [ENTER] TO CONTINUE\n";
-        #$res = <>;
     }
     
     print "SELECT: [Stop|Continue|Modify|Edit] ";
@@ -436,7 +436,7 @@ sub extendRepeat {
 }
 
 sub extendRepeatNoSearch {
-    my ($rep, $searchFile, $iter) = @_;
+    my ($rep, $iter) = @_;
     my @all_seqs    = ();
     my @left_seqs   = ();
     my @right_seqs  = ();
@@ -461,8 +461,8 @@ sub extendRepeatNoSearch {
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     close F;
-    open S, "$searchFile" or die "cannot read $searchFile\n";
 
+    open S, "$temp.out" or die "cannot read $temp.out\n";
     while (<S>) {
         chomp;
         my ($qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, $evalue, $score) = split (/\t/, $_);
@@ -474,13 +474,13 @@ sub extendRepeatNoSearch {
         next if ($hLen   < $minlen);
         
         if ($no5p == 0 and $no3p == 0) {
-            last if ( ($#left_seqs + $#right_seqs + 2) >= (2 * $numseq));
+            last if (($#left_seqs + $#right_seqs + 2) >= (2 * $numseq));
         }
         elsif ($no5p == 0) {
-            last if ( ($#left_seqs + 1) >= $numseq);
+            last if (($#left_seqs + 1) >= $numseq);
         }
         elsif ($no3p == 0) {
-            last if ( ($#right_seqs + 1) >= $numseq);
+            last if (($#right_seqs + 1) >= $numseq);
         }
 
         if ($no5p == 0) {
