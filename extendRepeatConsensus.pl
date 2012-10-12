@@ -20,6 +20,7 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -z --maxn     Maximal number of no-bases in extension           [       2]
     -w --win      Extension window                                  [      50]
     -t --temp     Temporary file names                              [    temp]
+    -b --stop     Stop extension after this N bases                 [     100]
     -a --auto     Run auto mode (non-interactive)
     --no3p        Don't extend to 3'
     --no5p        Don't extend to 5'
@@ -106,6 +107,7 @@ my %conf     = ('size'     => 8,
                 'evalue'   => 1 / 1e10,
                 'proc'     => 4,
                 'search'   => 1,
+                'stop'     => 100,
                 'matrix'   => 'wumatrix');
 
 # Main variables
@@ -146,6 +148,7 @@ GetOptions(
     'x|matrix:s'        => \$conf{'matrix'},
     'no3p'              => \$conf{'no3p'},
     'no5p'              => \$conf{'no5p'},
+    'b|stop:i'          => \$conf{'stop'},
     'p|proc:i'          => \$conf{'proc'}
 ) or pod2usage(-verbose => 2);
 printVersion()           if  (defined $version);
@@ -159,18 +162,21 @@ $proc   = $conf{'proc'};
 $evalue = $conf{'evalue'};
 
 if ($conf{'engine'} eq 'wublast') {
-    $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast, DEBUG => 1);
+    $Engine = WUBlastSearchEngine->new(pathToEngine => $wublast);
     $Engine->setMatrix("$matrix_dir/wublast/nt/$matrix");
+    $Engine->setAdditionalParameters("-cpus $proc");
 }
 elsif ($conf{'engine'} eq 'rmblast') {
-    $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast, DEBUG => 1);
+    $Engine = NCBIBlastSearchEngine->new(pathToEngine => $rmblast);
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
+    $Engine->setAdditionalParameters("-num_threads $proc");
 }
 else { die "search engine not supported: $conf{'engine'}\n"; }
 
 checkIndex($conf{'engine'}, $genome);
 my $cm_param    = checkDiv($conf{'div'});
 my ($lab, $rep) = readFasta($in);
+my $len_orig    = length $rep;
 my $iter        = 0;
 loadGenome($genome);
 
@@ -190,7 +196,7 @@ while (1) {
     
     my $len_old = length $rep;
     my $len_new = length $new;
-    last if ($len_old == $len_new);
+    last if ($len_old == $len_new or $len_new >= ($len_orig + $conf{'stop'}));
     $rep = $new;
     next if (defined $auto);
     
@@ -361,12 +367,13 @@ sub extendRepeat {
         my $hEnd   = $searchResults->get( $i )->getSubjEnd;
         my $dir    = $searchResults->get( $i )->getOrientation;
         my $score  = $searchResults->get( $i )->getScore;
-        my $evalue = $searchResults->get( $i )->getPValue;
+        my $evalue = 0; # RMBlast doesn't report evalue :(
+        $evalue = $searchResults->get( $i )->getPValue if ($conf{'engine'} eq 'wublast');
         my $qLen   = $qEnd - $qStart;
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
         next if ($score  < $minscore);
-        next if ($evalue < $maxe);
+        next if ($evalue > $maxe);
         next if ($hLen   < $minlen);
         
         if ($no5p == 0 and $no3p == 0) {
