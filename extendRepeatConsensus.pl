@@ -112,8 +112,8 @@ my %conf     = ('size'     => 8,
 
 # Main variables
 my $our_version = 0.1;
-my $pager = $ENV{PAGER} || 'less';
-my $editor      = 'vi'; # or emacs, nano, pico, ...
+my $pager       = 'less'; # or more
+my $editor      = 'emacs'; # or emacs, nano, pico, ...
 my $linup       = './Linup';
 my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
 my $makeblastdb = '/usr/local/rmblast/bin/makeblastdb';
@@ -149,7 +149,8 @@ GetOptions(
     'no3p'              => \$conf{'no3p'},
     'no5p'              => \$conf{'no5p'},
     'b|stop:i'          => \$conf{'stop'},
-    'p|proc:i'          => \$conf{'proc'}
+    'p|proc:i'          => \$conf{'proc'},
+    'editor:s'          => \$editor
 ) or pod2usage(-verbose => 2);
 printVersion()           if  (defined $version);
 pod2usage(-verbose => 2) if  (defined $help);
