@@ -225,8 +225,8 @@ while (1) {
     
     if ($res =~ m/m/i) {
         print "Changing parameters:\n";
-        foreach my $param (keys %conf) {
-            next if ($param =~ m/proc|matrix|engine|evalue/);
+        foreach my $param (sort keys %conf) {
+            next if ($param =~ m/proc|matrix|engine/);
             print "   $param [", $conf{$param}, "] : ";
             $res = <>; 
             chomp $res; 
