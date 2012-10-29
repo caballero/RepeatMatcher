@@ -33,12 +33,18 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -m --minseqs  Minimal number of sequences to continue extending [       3]
     -l --minlen   Minimal length of sequences                       [     100]
     -u --evalue   Maximal e-value                                   [   1e-10]
+    -p --proc     Total threats to use in search                    [       4]
+    -r --region   Define a region as additional seed in search,
+                  the coordinates are 1b: 1,100
     
     Cross_match options
     -d --div      Divergence level (14,18,20,25)                    [      14]
     --minscore    Cross_match minscore                              [     200]
     --minmatch    Cross_match minmatch                              [       7]
     
+    Other options
+    --editor      Use this editor (vi, emacs, pico, nano)           [   emacs]
+    --pager       Use this command to view files (less, more)       [    less]
     -h --help     Print this screen and exit
     -v --verbose  Verbose mode on
     --version     Print version and exit
@@ -108,12 +114,14 @@ my %conf     = ('size'     => 8,
                 'proc'     => 4,
                 'search'   => 1,
                 'stop'     => 100,
-                'matrix'   => 'wumatrix');
+                'matrix'   => 'wumatrix',
+                'region'   => 0
+                );
 
 # Main variables
 my $our_version = 0.1;
 my $pager       = 'less'; # or more
-my $editor      = 'emacs'; # or emacs, nano, pico, ...
+my $editor      = 'emacs'; # or vi, emacs, nano, pico, ...
 my $linup       = './Linup';
 my $rmblast     = '/usr/local/rmblast/bin/rmblastn';
 my $makeblastdb = '/usr/local/rmblast/bin/makeblastdb';
@@ -130,10 +138,13 @@ my ($searchResults, $status, $Engine, $matrix, $proc, $evalue);
 GetOptions(
     'h|help'            => \$help,
     'v|verbose'         => \$verbose,
+    'version'           => \$version,
     'i|in=s'            => \$in,
     'o|out=s'           => \$out,
     'g|genome=s'        => \$genome,
     'a|auto'            => \$auto,
+    'editor:s'          => \$editor,
+    'pager:s'           => \$pager,
     'd|divergence:i'    => \$conf{'div'},
     's|size:i'          => \$conf{'size'},
     'l|minlen:i'        => \$conf{'minlen'},
@@ -150,7 +161,7 @@ GetOptions(
     'no5p'              => \$conf{'no5p'},
     'b|stop:i'          => \$conf{'stop'},
     'p|proc:i'          => \$conf{'proc'},
-    'editor:s'          => \$editor
+    'r|region:s'        => \$conf{'region'}
 ) or pod2usage(-verbose => 2);
 printVersion()           if  (defined $version);
 pod2usage(-verbose => 2) if  (defined $help);
@@ -172,7 +183,9 @@ elsif ($conf{'engine'} eq 'rmblast') {
     $Engine->setMatrix("$matrix_dir/ncbi/nt/$matrix");
     $Engine->setAdditionalParameters("-num_threads $proc");
 }
-else { die "search engine not supported: $conf{'engine'}\n"; }
+else { 
+    die "search engine not supported: $conf{'engine'}\n"; 
+}
 
 checkIndex($conf{'engine'}, $genome);
 my $cm_param    = checkDiv($conf{'div'});
@@ -344,10 +357,16 @@ sub extendRepeat {
     my $no3p        = $conf{'no3p'};
     my $no5p        = $conf{'no5p'};
     my $maxe        = $conf{'evalue'};
+    my $region      = $conf{'region'};
     my $ext         = 'Z' x $size;
     my $hits;
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
+    if  ($region =~ m/,/) {
+        my ($rini, $rend) = split (/,/, $region);
+        my $seed = substr ($rep, $rini - 1, $rend - $rini);
+        print F ">seed\n$seed\n";
+    }
     close F;
     open  O, ">$temp.out" or die "cannot write $temp.fa\n";
 
@@ -397,7 +416,12 @@ sub extendRepeat {
                 else {
                     $seq = substr($genome{$hName}, $hStart - $qStart - $size - 1, $hLen + $qStart + $size -1);
                 }
-                push @left_seqs, $seq;
+                if ($qName eq 'seed') {
+                    push @left_seqs, ">lseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                } 
+                else {
+                    push @left_seqs, ">left_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                }
             }
         }
         
@@ -409,7 +433,12 @@ sub extendRepeat {
                 else {
                     $seq = substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qEnd) + $size - 1);
                 }
-                push @right_seqs, $seq;
+                if ($qName eq 'seed') {
+                    push @right_seqs, ">rseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                } 
+                else {
+                    push @right_seqs, ">right_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                }
             }
         }
     }
@@ -499,7 +528,12 @@ sub extendRepeatNoSearch {
                 else {
                     $seq = substr($genome{$hName}, $hStart - $qStart - ($size * $iter) - 1, $hLen + $qStart + ($size * $iter) -1);
                 }
-                push @left_seqs, $seq;
+                if ($qName eq 'seed') {
+                    push @left_seqs, ">lseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                } 
+                else {
+                    push @left_seqs, ">left_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                }
             }
         }
         
@@ -511,7 +545,12 @@ sub extendRepeatNoSearch {
                 else {
                     $seq = substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qEnd) + ($size * $iter) - 1);
                 }
-                push @right_seqs, $seq;
+                if ($qName eq 'seed') {
+                    push @right_seqs, ">rseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                } 
+                else {
+                    push @right_seqs, ">right_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                }
             }
         }
     }
@@ -554,10 +593,8 @@ sub createConsensus {
     close R;
     
     open  F, ">$temp.repseq.fa" or die "cannot write $temp.repseq.fa\n";
-    my $i = 1;
     while (my $seq = shift @_) {
-        print F ">rep$i\n$seq\n";
-        $i++;
+        print F $seq;
     }
     close F;
     
