@@ -345,6 +345,8 @@ sub extendRepeat {
     my $left        = '';
     my $right       = '';
     my $cons        = '';
+    my $base        = '';
+    my $clip        = '';
     my $null        = '';
     my $temp        = $conf{'temp'};
     my $matrix      = $conf{'matrix'};
@@ -455,15 +457,17 @@ sub extendRepeat {
     my $ext_rep  = $rep;
     $ext_rep = "$ext$ext_rep" if (($#left_seqs  + 1)  >= $minseq);
     $ext_rep = "$ext_rep$ext" if (($#right_seqs + 1)  >= $minseq);
-    $cons  = createConsensus("$ext_rep", @all_seqs);
+    ($cons, $base)  = createConsensus("$ext_rep", @all_seqs);
     
-    if ($ext_rep =~ m/^Z/) {
-        $left  = substr($cons, 0, $size);
+    if ($base  =~ m/^(Z+)/) {
+        $clip  = $1;
+        $left  = substr($cons, 0, length $clip);
         $null  = $left =~ tr/N/N/;
         $left  = '' if ($null >= $maxn);
     }
-    if ($ext_rep =~ m/Z$/) {
-        $right = substr($cons, (length $cons) - $size, $size);
+    if ($base  =~ m/(Z+)$/) {
+        $clip  = $1;
+        $right = substr($cons, (length $cons) - (length $clip), length $clip);
         $null  = $right =~ tr/N/N/;
         $right = '' if ($null >= $maxn);
     }
@@ -481,6 +485,8 @@ sub extendRepeatNoSearch {
     my $left        = '';
     my $right       = '';
     my $cons        = '';
+    my $base        = '';
+    my $clip        = '';
     my $null        = '';
     my $temp        = $conf{'temp'};
     my $matrix      = $conf{'matrix'};
@@ -567,15 +573,17 @@ sub extendRepeatNoSearch {
     my $ext_rep  = $rep;
     $ext_rep = "$ext$ext_rep" if (($#left_seqs  + 1)  >= $minseq);
     $ext_rep = "$ext_rep$ext" if (($#right_seqs + 1)  >= $minseq);
-    $cons  = createConsensus("$ext_rep", @all_seqs);
+    ($cons, $base)  = createConsensus("$ext_rep", @all_seqs);
     
-    if ($ext_rep =~ m/^Z/) {
-        $left  = substr($cons, 0, $size);
+    if ($base  =~ m/^(Z+)/) {
+        $clip  = $1;
+        $left  = substr($cons, 0, length $clip);
         $null  = $left =~ tr/N/N/;
         $left  = '' if ($null >= $maxn);
     }
-    if ($ext_rep =~ m/Z$/) {
-        $right = substr($cons, (length $cons) - $size, $size);
+    if ($base  =~ m/(Z+)$/) {
+        $clip  = $1;
+        $right = substr($cons, (length $cons) - (length $clip), length $clip);
         $null  = $right =~ tr/N/N/;
         $right = '' if ($null >= $maxn);
     }
@@ -603,19 +611,27 @@ sub createConsensus {
     
     system "$linup -i $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
     
-    my $con = '';
+    my $cons = '';
+    my $base = '';
     open A, "$temp.ali" or die "cannot open file $temp.ali\n";
     while (<A>) {
         chomp;
-        next unless (m/^consensus/);
-        s/consensus\s+\d+\s+//;
-        s/\s+\d+$//;
-        s/-//g;
-        $con .= $_;
+        if (m/^consensus/) {
+            s/consensus\s+\d+\s+//;
+            s/\s+\d+$//;
+            s/-//g;
+            $cons .= $_;
+        }
+        elsif (m/^rep0/) {
+            s/rep0\s+\d+\s+//;
+            s/\s+\d+$//;
+            s/-//g;
+            $base .= $_;
+        }
     }
     close A;
     
-    return $con;
+    return ($cons, $base);
 }
 
 sub readBlocks {
