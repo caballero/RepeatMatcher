@@ -255,7 +255,7 @@ while (1) {
         ($lab, $rep) = readFasta($file);
     }
 }
-my $ext = $len_orig - length $new;
+my $ext = (length $new) - $len_orig;
 printFasta("$lab | extended $ext bases", $new, $out);
 
 ###################################
