@@ -369,7 +369,7 @@ sub extendRepeat {
         print F ">seed\n$seed\n";
     }
     close F;
-    open  O, ">$temp.out" or die "cannot write $temp.fa\n";
+    open  O, ">$temp.out" or die "cannot write $temp.out\n";
 
     $Engine->setQuery("$temp.fa");
     $Engine->setSubject($genome);
@@ -508,7 +508,7 @@ sub extendRepeatNoSearch {
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
         next if ($score  < $minscore);
-        next if ($evalue < $maxe);
+        next if ($evalue > $maxe);
         next if ($hLen   < $minlen);
         
         if ($no5p == 0 and $no3p == 0) {
