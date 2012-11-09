@@ -362,7 +362,11 @@ sub extendRepeat {
     my $maxe        = $conf{'evalue'};
     my $region      = $conf{'region'};
     my $ext         = 'Z' x $size;
-    my $hits;
+    my $hits;  
+    my $ini;
+    my $end;
+    my $len;
+    
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     if  ($region =~ m/,/) {
@@ -414,33 +418,53 @@ sub extendRepeat {
         if ($no5p == 0) {
             if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
-                    $seq = revcomp(substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qStart) + $size - 1));
+                    $ini = $hStart - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd + $size - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = revcomp(substr($genome{$hName}, $ini, $len));
                 }
                 else {
-                    $seq = substr($genome{$hName}, $hStart - $qStart - $size - 1, $hLen + $qStart + $size -1);
+                    $ini = $hStart - $size - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = substr($genome{$hName}, $ini, $len);
                 }
                 if ($qName eq 'seed') {
-                    push @left_seqs, ">lseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @left_seqs, ">lseed_$hName:$ini-$end:$dir\n$seq\n";
                 } 
                 else {
-                    push @left_seqs, ">left_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @left_seqs, ">left_$hName:$ini-$end:$dir\n$seq\n";
                 }
             }
         }
         
         if ($no3p == 0) {
-            if ($qEnd > ($qLen - $win) and ($hEnd + $size) <= $genome_len{$hName} and ($#right_seqs + 1) <= $numseq) {
+            if ($qEnd > ($qLen - $win) and ($#right_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
-                    $seq = revcomp(substr($genome{$hName}, $hStart - $qStart - $size - 1, $hLen + $qStart + $size - 1));                    
+                    $ini = $hStart - $size - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = revcomp(substr($genome{$hName}, $ini, $len));                    
                 }
                 else {
-                    $seq = substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qEnd) + $size - 1);
+                    $ini = $hStart - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd + $size - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = substr($genome{$hName}, $ini, $len);
                 }
                 if ($qName eq 'seed') {
-                    push @right_seqs, ">rseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @right_seqs, ">rseed_$hName:$ini-$end:$dir\n$seq\n";
                 } 
                 else {
-                    push @right_seqs, ">right_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @right_seqs, ">right_$hName:$ini-$end:$dir\n$seq\n";
                 }
             }
         }
@@ -502,6 +526,10 @@ sub extendRepeatNoSearch {
     my $maxe        = $conf{'evalue'};
     my $ext         = 'Z' x $size;
     my $hits;
+    my $ini;
+    my $end;
+    my $len;
+    
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
     close F;
@@ -530,33 +558,53 @@ sub extendRepeatNoSearch {
         if ($no5p == 0) {
             if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
-                    $seq = revcomp(substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qStart) + ($size * $iter) - 1));
+                    $ini = $hStart - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd + ($size * $iter) - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = revcomp(substr($genome{$hName}, $ini, $len));
                 }
                 else {
-                    $seq = substr($genome{$hName}, $hStart - $qStart - ($size * $iter) - 1, $hLen + $qStart + ($size * $iter) -1);
+                    $ini = $hStart - ($size * $iter) - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = substr($genome{$hName}, $ini, $len);
                 }
                 if ($qName eq 'seed') {
-                    push @left_seqs, ">lseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @left_seqs, ">lseed_$hName:$ini-$end:$dir\n$seq\n";
                 } 
                 else {
-                    push @left_seqs, ">left_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @left_seqs, ">left_$hName:$ini-$end:$dir\n$seq\n";
                 }
             }
         }
         
         if ($no3p == 0) {
-            if ($qEnd > ($qLen - $win) and ($hEnd + ($size * $iter)) <= $genome_len{$hName} and ($#right_seqs + 1) <= $numseq) {
+            if ($qEnd > ($qLen - $win) and ($#right_seqs + 1) <= $numseq) {
                 if ($dir eq 'C') {
-                    $seq = revcomp(substr($genome{$hName}, $hStart - $qStart - ($size * $iter) - 1, $hLen + $qStart + ($size * $iter) - 1));                    
+                    $ini = $hStart - ($size * $iter) - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = revcomp(substr($genome{$hName}, $ini, $len));                    
                 }
                 else {
-                    $seq = substr($genome{$hName}, $hStart - 1, $hLen + ($qLen - $qEnd) + ($size * $iter) - 1);
+                    $ini = $hStart - 1;
+                    $ini = 0 if ($ini < 0);
+                    $end = $hEnd + ($size * $iter) - 1;
+                    $end = length $genome{$hName} if ($end > length $genome{$hName});
+                    $len = $end - $ini;
+                    $seq = substr($genome{$hName}, $ini, $len);
                 }
                 if ($qName eq 'seed') {
-                    push @right_seqs, ">rseed_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @right_seqs, ">rseed_$hName:$ini-$end:$dir\n$seq\n";
                 } 
                 else {
-                    push @right_seqs, ">right_$hName:$hStart-$hEnd:$dir\n$seq\n";
+                    push @right_seqs, ">right_$hName:$ini-$end:$dir\n$seq\n";
                 }
             }
         }
