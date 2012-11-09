@@ -113,7 +113,7 @@ my %conf     = ('size'     => 8,
                 'evalue'   => 1 / 1e10,
                 'proc'     => 4,
                 'search'   => 1,
-                'stop'     => 100,
+                'stop'     => 400,
                 'matrix'   => 'wumatrix',
                 'region'   => 0
                 );
@@ -498,7 +498,9 @@ sub extendRepeat {
     
     warn "extensions: left=$left, right=$right\n" if (defined $verbose);
     $conf{'search'} = 0;
-    return "$left$rep$right";
+    $cons =~ s/^N+//;
+    $cons =~ s/N+$//;
+    return "$cons";
 }
 
 sub extendRepeatNoSearch {
@@ -637,7 +639,9 @@ sub extendRepeatNoSearch {
     }
     
     warn "extensions: left=$left, right=$right\n" if (defined $verbose);
-    return "$left$rep$right";
+    $cons =~ s/^N+//;
+    $cons =~ s/N+$//;
+    return "$cons";
 }
 
 sub createConsensus {
