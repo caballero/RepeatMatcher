@@ -655,7 +655,7 @@ sub createConsensus {
     }
     close F;
     
-    system "$cross_match $temp.repseq.fa $temp.rep.fa $cm_param -alignments > $temp.cm_out 2> /dev/null";
+    system "$cross_match $temp.rep.fa $temp.repseq.fa $cm_param -alignments > $temp.cm_out 2> /dev/null";
     
     system "$linup -i $temp.cm_out $matrix_dir/linup/nt/linupmatrix > $temp.ali 2> /dev/null";
     
