@@ -383,7 +383,7 @@ sub extendRepeat {
     die "Search returned an error: $status\n" if ($status > 0);
     
     $hits = $searchResults->size();
-
+    $conf{'search_hits'} = 0;
     warn "Found $hits candidate hits\n" if (defined $verbose);
     for ( my $i = 0 ; $i < $hits; $i++ ) {
         my $qName  = $searchResults->get( $i )->getQueryName;
@@ -403,7 +403,7 @@ sub extendRepeat {
         next if ($score  < $minscore);
         next if ($evalue > $maxe);
         next if ($hLen   < $minlen);
-        
+        $conf{'search_hits'}++;
         print O  join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, $evalue, "$score\n";
     }
     close O;
