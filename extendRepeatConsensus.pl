@@ -399,6 +399,7 @@ sub extendRepeat {
         my $qLen   = $qEnd - $qStart;
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
+        $dir = 'F' unless ($dir eq 'C');
         next if ($score  < $minscore);
         next if ($evalue > $maxe);
         next if ($hLen   < $minlen);
