@@ -551,7 +551,7 @@ sub extendRepeatNoSearch {
     }
     
     warn "extensions: left=$left, right=$right\n" if (defined $verbose);
-    my $res = "$left$rep$right";
+    my $res = $cons;
     $res =~ s/^N+//;
     $res =~ s/N+$//;
     return "$res";
