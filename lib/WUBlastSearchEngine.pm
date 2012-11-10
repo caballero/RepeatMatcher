@@ -1035,7 +1035,7 @@ sub parseOutput {
     #
     # Evalue
     #
-    if ( /Expect = (\.+?),/ ) {
+    if ( /Expect = (.+?),/ ) {
         $evalue = $1;
     }
     
