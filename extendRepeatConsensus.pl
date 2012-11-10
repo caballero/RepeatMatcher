@@ -399,9 +399,9 @@ sub extendRepeat {
         my $qLen   = $qEnd - $qStart;
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
-        #next if ($score  < $minscore);
-        #next if ($evalue > $maxe);
-        #next if ($hLen   < $minlen);
+        next if ($score  < $minscore);
+        next if ($evalue > $maxe);
+        next if ($hLen   < $minlen);
         
         print O  join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, $evalue, "$score\n";
     }

@@ -1028,14 +1028,14 @@ sub parseOutput {
     #
     # Score
     #
-    if ( /Score = (\d+)/ ) {
+    if ( /Score = (\d+) / ) {
       $score = $1;
     }
 
     #
     # Evalue
     #
-    if ( /Expect = (\d+)/ ) {
+    if ( /Expect = (\.+?),/ ) {
         $evalue = $1;
     }
     
