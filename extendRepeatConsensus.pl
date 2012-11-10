@@ -541,13 +541,19 @@ sub extendRepeatNoSearch {
         $clip  = $1;
         $left  = substr($cons, 0, length $clip);
         $null  = $left =~ tr/N/N/;
-        $left  = '' if ($null >= $maxn);
+        if ($null >= $maxn) {
+            substr($cons, 0, length $clip) = '';
+            $conf{'no5p'} = 1;
+        }
     }
     if ($base  =~ m/(Z+)$/) {
         $clip  = $1;
         $right = substr($cons, (length $cons) - (length $clip), length $clip);
         $null  = $right =~ tr/N/N/;
-        $right = '' if ($null >= $maxn);
+        if ($null >= $maxn) {
+            substr($cons, (length $cons) - (length $clip), length $clip) = '';
+            $conf{'no3p'} = 1;
+        }
     }
     
     warn "extensions: left=$left, right=$right\n" if (defined $verbose);
