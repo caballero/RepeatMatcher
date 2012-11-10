@@ -407,6 +407,8 @@ sub extendRepeat {
     }
     close O;
     
+    system ("sort -rn -k 9 $temp.out > $temp.out.sort");
+    system ("mv $temp.out.sort $temp.out");
     $conf{'search'} = 0;
     my $res = extendRepeatNoSearch($rep, 1);
     return "$res";
