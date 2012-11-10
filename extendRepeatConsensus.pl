@@ -399,108 +399,16 @@ sub extendRepeat {
         my $qLen   = $qEnd - $qStart;
         my $hLen   = $hEnd - $hStart;
         my $seq    = '';
-        next if ($score  < $minscore);
-        next if ($evalue > $maxe);
-        next if ($hLen   < $minlen);
+        #next if ($score  < $minscore);
+        #next if ($evalue > $maxe);
+        #next if ($hLen   < $minlen);
         
-        if ($no5p == 0 and $no3p == 0) {
-            last if ( ($#left_seqs + $#right_seqs + 2) >= (2 * $numseq));
-        }
-        elsif ($no5p == 0) {
-            last if ( ($#left_seqs + 1) >= $numseq);
-        }
-        elsif ($no3p == 0) {
-            last if ( ($#right_seqs + 1) >= $numseq);
-        }
-
         print O  join "\t", $qName, $qStart, $qEnd, $hName, $hStart, $hEnd, $dir, $evalue, "$score\n";
-        
-        if ($no5p == 0) {
-            if ($qStart <= $win and ($#left_seqs + 1) <= $numseq) {
-                if ($dir eq 'C') {
-                    $ini = $hStart - 1;
-                    $ini = 0 if ($ini < 0);
-                    $end = $hEnd + $size - 1;
-                    $end = length $genome{$hName} if ($end > length $genome{$hName});
-                    $len = $end - $ini;
-                    $seq = revcomp(substr($genome{$hName}, $ini, $len));
-                }
-                else {
-                    $ini = $hStart - $size - 1;
-                    $ini = 0 if ($ini < 0);
-                    $end = $hEnd - 1;
-                    $end = length $genome{$hName} if ($end > length $genome{$hName});
-                    $len = $end - $ini;
-                    $seq = substr($genome{$hName}, $ini, $len);
-                }
-                if ($qName eq 'seed') {
-                    push @left_seqs, ">lseed_$hName:$ini-$end:$dir\n$seq\n";
-                } 
-                else {
-                    push @left_seqs, ">left_$hName:$ini-$end:$dir\n$seq\n";
-                }
-            }
-        }
-        
-        if ($no3p == 0) {
-            if ($qEnd > ($qLen - $win) and ($#right_seqs + 1) <= $numseq) {
-                if ($dir eq 'C') {
-                    $ini = $hStart - $size - 1;
-                    $ini = 0 if ($ini < 0);
-                    $end = $hEnd - 1;
-                    $end = length $genome{$hName} if ($end > length $genome{$hName});
-                    $len = $end - $ini;
-                    $seq = revcomp(substr($genome{$hName}, $ini, $len));                    
-                }
-                else {
-                    $ini = $hStart - 1;
-                    $ini = 0 if ($ini < 0);
-                    $end = $hEnd + $size - 1;
-                    $end = length $genome{$hName} if ($end > length $genome{$hName});
-                    $len = $end - $ini;
-                    $seq = substr($genome{$hName}, $ini, $len);
-                }
-                if ($qName eq 'seed') {
-                    push @right_seqs, ">rseed_$hName:$ini-$end:$dir\n$seq\n";
-                } 
-                else {
-                    push @right_seqs, ">right_$hName:$ini-$end:$dir\n$seq\n";
-                }
-            }
-        }
     }
     close O;
     
-    my $nleft  = scalar @left_seqs;
-    my $nright = scalar @right_seqs;
-    
-    warn "$nleft in left side, $nright in right side\n" if (defined $verbose); 
-    
-    push @all_seqs, @left_seqs;
-    push @all_seqs, @right_seqs;
-    my $ext_rep  = $rep;
-    $ext_rep = "$ext$ext_rep" if (($#left_seqs  + 1)  >= $minseq);
-    $ext_rep = "$ext_rep$ext" if (($#right_seqs + 1)  >= $minseq);
-    ($cons, $base)  = createConsensus("$ext_rep", @all_seqs);
-    
-    if ($base  =~ m/^(Z+)/) {
-        $clip  = $1;
-        $left  = substr($cons, 0, length $clip);
-        $null  = $left =~ tr/N/N/;
-        $left  = '' if ($null >= $maxn);
-    }
-    if ($base  =~ m/(Z+)$/) {
-        $clip  = $1;
-        $right = substr($cons, (length $cons) - (length $clip), length $clip);
-        $null  = $right =~ tr/N/N/;
-        $right = '' if ($null >= $maxn);
-    }
-    
-    warn "extensions: left=$left, right=$right\n" if (defined $verbose);
     $conf{'search'} = 0;
-    my $res = "$left$rep$right";
-    $res =~ s/^N+//;
-    $res =~ s/N+$//;
+    my $res = extendRepeatNoSearch($rep, 1);
     return "$res";
 }
 
