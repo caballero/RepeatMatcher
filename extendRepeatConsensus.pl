@@ -36,6 +36,8 @@ Iterative program to extend the borders in for a RepeatModeler consensus.
     -p --proc     Total threats to use in search                    [       4]
     -r --region   Define a region as additional seed in search,
                   the coordinates are 1b: 1,100
+    --search_ext  Search again if extension > N                     [     100]
+    --mult_hits   Stop is search hits > N times                     [       5]
     
     Cross_match options
     -d --div      Divergence level (14,18,20,25)                    [      14]
@@ -97,25 +99,30 @@ my $in       = undef;
 my $genome   = undef;
 my $out      = undef;
 my $auto     = undef;
-my %conf     = ('size'     => 8,
-                'engine'   => 'wublast',
-                'numseq'   => 200,
-                'minseq'   => 3,
-                'minlen'   => 100,
-                'div'      => 14,
-                'maxn'     => 2,
-                'win'      => 50,
-                'no3p'     => 0,
-                'no5p'     => 0,
-                'temp'     => 'temp',
-                'minmatch' => 7,
-                'minscore' => 200,
-                'evalue'   => 1 / 1e10,
-                'proc'     => 4,
-                'search'   => 1,
-                'stop'     => 100,
-                'matrix'   => 'wumatrix',
-                'region'   => 0
+my %conf     = ('size'      => 8,
+                'engine'    => 'wublast',
+                'numseq'    => 200,
+                'minseq'    => 3,
+                'minlen'    => 100,
+                'div'       => 14,
+                'maxn'      => 2,
+                'win'       => 50,
+                'no3p'      => 0,
+                'no5p'      => 0,
+                'temp'      => 'temp',
+                'minmatch'  => 7,
+                'minscore'  => 200,
+                'evalue'    => 1 / 1e10,
+                'proc'      => 4,
+                'search'    => 1,
+                'stop'      => 100,
+                'matrix'    => 'wumatrix',
+                'region'    => 0,
+                'searchext' => 100,
+                'multext'   => 5,
+                'realiter'  => 0,
+                'iter'      => 0,
+                'extsize'   => 0
                 );
 
 # Main variables
@@ -161,7 +168,9 @@ GetOptions(
     'no5p'              => \$conf{'no5p'},
     'b|stop:i'          => \$conf{'stop'},
     'p|proc:i'          => \$conf{'proc'},
-    'r|region:s'        => \$conf{'region'}
+    'r|region:s'        => \$conf{'region'},
+    'searchext:i'       => \$conf{'searchext'},
+    'multiext:i'        => \$conf{'multiext'}
 ) or pod2usage(-verbose => 2);
 printVersion()           if  (defined $version);
 pod2usage(-verbose => 2) if  (defined $help);
@@ -191,25 +200,34 @@ checkIndex($conf{'engine'}, $genome);
 my $cm_param    = checkDiv($conf{'div'});
 my ($lab, $rep) = readFasta($in);
 my $len_orig    = length $rep;
-my $iter        = 0;
+
 loadGenome($genome);
 
 ###################################
 ####        M A I N            ####
 ###################################
 while (1) {
-    $iter++;
-    print "ITER #$iter\n";
+    $conf{'iter'}++;
+    $conf{'realiter'}++;
+    print "ITER #$conf{'realiter'}\n";
     warn "extending repeat\n" if (defined $verbose);
     if ($conf{'search'} == 1) {
         $new = extendRepeat($rep);
     }
     else {
-        $new = extendRepeatNoSearch($rep, $iter);
+        $new = extendRepeatNoSearch($rep, $conf{'iter'});
     }
     
-    my $len_old = length $rep;
-    my $len_new = length $new;
+    my $len_old  = length $rep;
+    my $len_new  = length $new;
+    $conf{'extsize'}  += $len_old - $len_new;
+    if ($conf{'extsize'} >= $conf{'searchext'}) {
+        $conf{'iter'}     = 0;
+        $conf{'extsize'}  = 0;
+        $conf{'search'}   = 1;
+        $conf{'no5p'}     = 0;
+        $conf{'no3p'}     = 0;
+    }
     last if ($len_old == $len_new or $len_new >= ($len_orig + $conf{'stop'}));
     $rep = $new;
     next if (defined $auto);
@@ -286,7 +304,7 @@ sub readFasta {
 
 sub printFasta {
     my ($head, $seq, $file) = @_;
-    my $col = 80;
+    my $col = 70;
     warn "writing file $file\n" if (defined $verbose);
     open  F, ">$file" or die "cannot write $file\n";
     print F "$head\n";
@@ -339,33 +357,13 @@ sub loadGenome {
 
 sub extendRepeat {
     my ($rep)       = @_;
-    my @all_seqs    = ();
-    my @left_seqs   = ();
-    my @right_seqs  = ();
-    my $left        = '';
-    my $right       = '';
-    my $cons        = '';
-    my $base        = '';
-    my $clip        = '';
-    my $null        = '';
     my $temp        = $conf{'temp'};
-    my $matrix      = $conf{'matrix'};
     my $minlen      = $conf{'minlen'};
     my $minscore    = $conf{'minscore'};
-    my $minseq      = $conf{'minseq'};
-    my $numseq      = $conf{'numseq'};
     my $maxn        = $conf{'maxn'};
-    my $size        = $conf{'size'};
-    my $win         = $conf{'win'};
-    my $no3p        = $conf{'no3p'};
-    my $no5p        = $conf{'no5p'};
     my $maxe        = $conf{'evalue'};
     my $region      = $conf{'region'};
-    my $ext         = 'Z' x $size;
     my $hits;  
-    my $ini;
-    my $end;
-    my $len;
     
     open  F, ">$temp.fa" or die "cannot write $temp.fa\n";
     print F  ">repeat\n$rep\n";
@@ -383,9 +381,8 @@ sub extendRepeat {
     die "Search returned an error: $status\n" if ($status > 0);
     
     $hits = $searchResults->size();
-    $conf{'search_hits'} = 0;
     warn "Found $hits candidate hits\n" if (defined $verbose);
-    for ( my $i = 0 ; $i < $hits; $i++ ) {
+    for (my $i = 0 ; $i < $hits; $i++) {
         my $qName  = $searchResults->get( $i )->getQueryName;
         my $qStart = $searchResults->get( $i )->getQueryStart;
         my $qEnd   = $searchResults->get( $i )->getQueryEnd;
