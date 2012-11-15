@@ -500,7 +500,8 @@ sub loadIn {
     my $id;
     my $class;
     while (<FASTA>) {
-        if (m/>(.+?)#(.+?) /) {
+        chomp;
+        if (m/>(.+)#(.+)/) {
             $id    = $1;
             $class = $2;
             s/>//;
@@ -515,15 +516,14 @@ sub loadIn {
             $data{$id}{'reverse'}  = 0  unless (defined $data{$id}{'reverse'});
             $data{$id}{'newlabel'} = $_ unless (defined $data{$id}{'newlabel'});
             $data{$id}{'question'} = 0  unless (defined $data{$id}{'question'});
-            $data{$id}{'status'}   = 0  unless (defined $data{$id}{'status'});            
+            $data{$id}{'status'}   = 0  unless (defined $data{$id}{'status'});
         }
-        elsif (m/>(.+)\n/) {
+        elsif (m/>(.+)/) {
             $id    = $1;
             $class = 'NoClass';
             s/>//;
             chomp;
             $data{$id}{'label'}     = $_;
-            warn "$id\t$_\n";
             unless (defined $data{$id}{$class}) {
                 $data{$id}{'class'} = $class;
                 $classes{$class}    = 1;
@@ -533,10 +533,10 @@ sub loadIn {
             $data{$id}{'reverse'}  = 0  unless (defined $data{$id}{'reverse'});
             $data{$id}{'newlabel'} = $_ unless (defined $data{$id}{'newlabel'});
             $data{$id}{'question'} = 0  unless (defined $data{$id}{'question'});
-            $data{$id}{'status'}   = 0  unless (defined $data{$id}{'status'});            
+            $data{$id}{'status'}   = 0  unless (defined $data{$id}{'status'});
         }
         else {
-            $data{$id}{'seq'}   .= $_;
+            $data{$id}{'seq'}   .= "$_\n";
         }
     }
     close FASTA;
@@ -551,7 +551,8 @@ sub loadAlign {
        if (m/^\s*\d+\s+\d+/) {
            s/^\s+//;
            my @a = split (/\s+/, $_);
-           $id = $a[4];
+           $id =  $a[4];
+           $id =~ s/#.+$//;
        }
        $data{$id}{'align'} .= $_ if ($id ne 'skip');
     }
@@ -568,11 +569,11 @@ sub loadSelf {
         next unless (m/^\s*\d+\s+\d+/);
         chomp;
         s/^\s*//;
-        s/\s+/\t/g;
-        my @line  = split (/\t/, $_);
+        my @line  = split (/\s+/, $_);
         $score = "$line[0]\t$line[1]\t$line[2]\t$line[3]";
         $id1   = $line[4];
         $id1   =~ s/#.+$//;
+        next if ($id1 =~ m/^\d+$/);
         $left  = "$line[4]\t$line[5]\t$line[6]\t$line[7]";
         if ($line[8] eq 'C') {
             $dir    = '-';
@@ -601,7 +602,7 @@ sub loadRepBlast {
     open BLAST, "$repblast" or die "cannot open file $repblast\n";
     local $/ = "\nBLASTX";
     while (<BLAST>) {
-        m/Query= (\S)/;
+        m/Query= (.+?)\n/;
         $id = $1;
         $id =~ s/#.+$//;
         if (m/No hits found/) {
@@ -630,7 +631,7 @@ sub loadNRBlast {
     open BLAST, "$nrblast" or die "cannot open file $nrblast\n";
     local $/ = "\nBLASTX";
     while (<BLAST>) {
-        m/Query= (\S)/;
+        m/Query= (.+?)\n/;
         $id = $1;
         $id =~ s/#.+$//;
         if (m/No hits found/) {
@@ -980,5 +981,6 @@ rRNA
 scRNA
 snRNA
 tRNA
+NoClass
 #;
 }
